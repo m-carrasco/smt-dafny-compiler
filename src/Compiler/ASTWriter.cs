@@ -1,3 +1,4 @@
+namespace SDC.AST;
 using System.CodeDom.Compiler;
 using SDC.AST;
 

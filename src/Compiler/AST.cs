@@ -178,11 +178,11 @@ public class AssignmentStatement : Statement{
 };
 
 public class ReturnStatement : Statement{
-    public ReturnStatement(Expression? returnedValue){
+    public ReturnStatement(Expression returnedValue){
         ReturnedValue = returnedValue;
     }
 
-    public Expression? ReturnedValue;
+    public Expression ReturnedValue;
 
     public override void Accept(IASTVisitor visitor)
     {

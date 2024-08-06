@@ -1,3 +1,4 @@
+namespace SDC.Converter;
 using Microsoft.Z3;
 using SDC.AST;
 using Z3BoolExpr = Microsoft.Z3.BoolExpr;
@@ -5,8 +6,8 @@ using Z3BoolExpr = Microsoft.Z3.BoolExpr;
 public class FunctionConverter{
     private List<VariableDefinition> _parameters = new List<VariableDefinition>();
     private Z3ExprConverter? _exprConverter;
-
-    public SDC.AST.FunctionDefinition Convert(string name, Z3BoolExpr[] assertions, List<Sort> safeDivSorts){
+    public List<TypeReference> SafeDivSorts = new();
+    public SDC.AST.FunctionDefinition Convert(string name, Z3BoolExpr[] assertions){
         _exprConverter = Z3ExprConverter.CreateFunctionConverter();
         _parameters = _exprConverter.Parameters;
         var expressions = assertions.Count() > 0 ? assertions.Select(e => _exprConverter.Convert(e)) : new List<Expression>() {LiteralExpression.True};
@@ -17,7 +18,7 @@ public class FunctionConverter{
         }
 
         var functionDef = new SDC.AST.FunctionDefinition(name, _parameters, new SDC.AST.TypeReference("bool"), expression);
-        safeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
+        SafeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
         return functionDef;
     }
 };

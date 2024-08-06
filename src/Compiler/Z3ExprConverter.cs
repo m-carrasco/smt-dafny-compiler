@@ -1,4 +1,7 @@
+namespace SDC.Converter;
+
 using SDC.AST;
+using SDC.Stubs;
 using Microsoft.Z3;
 using Z3BoolExpr = Microsoft.Z3.BoolExpr;
 using Z3Expr = Microsoft.Z3.Expr;
@@ -24,13 +27,13 @@ public class Z3ExprConverter{
     };
 
     ConversionKind _kind;
-    Func<Microsoft.Z3.Expr, Expression>? _childConverter;
+    Func<Microsoft.Z3.Expr, Expression> _childConverter;
     IDictionary<uint, Expression> _cache = new Dictionary<uint, Expression>();
     bool _useSafeDiv = true;
 
     IDictionary<uint, Expression> _conversionCache = new Dictionary<uint, Expression>();
 
-    public List<Sort> SafeDivUseSort = new List<Sort>();
+    public List<TypeReference> SafeDivUseSort = new List<TypeReference>();
     public List<VariableDefinition> Parameters = new List<VariableDefinition>();
 
     private Z3ExprConverter(ConversionKind conversionKind){
@@ -91,7 +94,7 @@ public class Z3ExprConverter{
                                 var t = Z3SortToDafny(z3Expr.Sort);
                                 var _safeDivIdentifier = _kind == ConversionKind.Method ? SafeDiv.GetSafeDivMethodIdentifier(t) : SafeDiv.GetSafeDivFunctionIdentifier(t);
                                 dafnyExpr = new SDC.AST.CallExpression(_safeDivIdentifier, new List<Expression>() {a0, a1});
-                                SafeDivUseSort.Add(z3Expr.Sort);
+                                SafeDivUseSort.Add(Z3SortToDafny(z3Expr.Sort));
                             } else{
                                 dafnyExpr = new SDC.AST.BinaryExpression(a0, Operator.Division, a1);
                             }

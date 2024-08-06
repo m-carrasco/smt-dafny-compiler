@@ -1,3 +1,5 @@
+namespace SDC.Converter;
+
 using Microsoft.Z3;
 using SDC.AST;
 using Z3BoolExpr = Microsoft.Z3.BoolExpr;
@@ -8,10 +10,10 @@ public class MethodConverter{
     private List<VariableDefinition> _localVariables = new List<VariableDefinition>();
     private List<VariableDefinition> _parameters = new List<VariableDefinition>();
     private List<Statement> _statements = new List<Statement>();
-    private bool _useSafeDiv = true;
     private Z3ExprConverter _exprConverter;
+    public List<TypeReference> SafeDivSorts = new();
 
-    public SDC.AST.MethodDefinition Convert(string name, Z3BoolExpr[] assertions, List<Sort> safeDivSorts){
+    public SDC.AST.MethodDefinition Convert(string name, Z3BoolExpr[] assertions){
         _conversionCache = new Dictionary<uint, IdentifierExpression>();
         _localVariables = new List<VariableDefinition>();
         _statements = new List<Statement>();
@@ -29,7 +31,7 @@ public class MethodConverter{
         _statements.Add(new ReturnStatement(LiteralExpression.True));
         var methodDef = new SDC.AST.MethodDefinition(name, _parameters, new VariableDefinition(new VariableReference("sat"), new SDC.AST.TypeReference("bool")), null, null, _statements, _localVariables);
 
-        safeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
+        SafeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
 
         return methodDef;
     }
@@ -58,9 +60,5 @@ public class MethodConverter{
         _localVariables.Add(localVariable);
 
         return localVariable;
-    }
-
-    private IdentifierExpression GetIdentifierExpression(Z3Expr expr) {
-        return _conversionCache[expr.Id];
     }
 };
