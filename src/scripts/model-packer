@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+
+import argparse
+from z3 import Solver, parse_smt2_file, Not
+import z3
+
+def solve_smt(file_path, negate=False):
+    solver = Solver()
+    formula = parse_smt2_file(file_path)
+    
+    if negate:
+        formula = Not(z3.And(formula))
+    
+    solver.add(formula)
+    
+    result = solver.check()
+    print(f"Result: {result}")
+    
+    res = []
+    if result == z3.sat:
+        model = solver.model()
+        sorted_vars = sorted(model.decls(), key=lambda v: v.name())
+        for var in sorted_vars:
+            value = model[var]
+            if z3.is_false(value):
+                res.append((0, 1))
+            elif z3.is_true(value):
+                res.append((1, 1))
+            else:
+                size_bits = model[var].sort().size()
+                size_bytes = (size_bits + 7) // 8
+                long_value = value.as_long()
+                res.append((long_value, size_bytes))
+
+    assert result != z3.unknown
+    return res
+
+def main():
+    parser = argparse.ArgumentParser(description='Solve SMT-LIB file using Z3')
+    parser.add_argument('file', type=str, help='Path to the SMT-LIB file')
+    parser.add_argument('output', type=str, help='Path to the packed file')
+    parser.add_argument('--negate', action='store_true', help='Solve the negation of the formula')
+    
+    args = parser.parse_args()
+    
+    values = solve_smt(args.file, negate=args.negate)
+
+    with open(args.output, 'wb') as f:
+        for long_value, byte_size in values:
+            f.write(long_value.to_bytes(byte_size, byteorder='little'))
+
+if __name__ == "__main__":
+    main()

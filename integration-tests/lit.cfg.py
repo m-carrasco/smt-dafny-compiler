@@ -32,6 +32,8 @@ config.substitutions.append(('%SDC', config.compiler_cli_bin))
 config.substitutions.append(('%dafny', os.environ['SDC_DAFNY']))
 config.substitutions.append(('%FileCheck', os.environ['SDC_FILE_CHECK']))
 config.substitutions.append(('%not', os.environ['SDC_NOT']))
+config.substitutions.append(('%packer', os.path.join(config.my_src_root, "src", "scripts", "packer")))
+config.substitutions.append(('%model-packer', os.path.join(config.my_src_root, "src", "scripts", "model-packer")))
 
 env_vars = {'HOME'}
 for e in env_vars:

@@ -29,7 +29,8 @@ public class MethodConverter{
         }
 
         _statements.Add(new ReturnStatement(LiteralExpression.True));
-        var methodDef = new SDC.AST.MethodDefinition(name, _parameters, new VariableDefinition(new VariableReference("sat"), new SDC.AST.TypeReference("bool")), null, null, _statements, _localVariables);
+        _localVariables.Sort((a, b) => a.Variable.Identifier.CompareTo(b.Variable.Identifier));
+        var methodDef = new SDC.AST.MethodDefinition(name, _parameters, new VariableDefinition(new VariableReference("sat"), new SDC.AST.TypeReference("bool")), null, null, _statements, _localVariables, new List<Attribute>());
 
         SafeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
 

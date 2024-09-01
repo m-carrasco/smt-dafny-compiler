@@ -31,6 +31,14 @@ public class ASTWriter{
                 return "/";
             case Operator.And:
                 return "&&";
+            case Operator.BitwiseOr:
+                return "|";
+            case Operator.Add:
+                return "+";
+            case Operator.Multiply:
+                return "*";
+            case Operator.Shl:
+                return "<<";
         }
 
         throw new NotImplementedException();
@@ -50,6 +58,14 @@ public class ASTWriter{
         }
 
         public void Visit(SDC.AST.Program p){
+            foreach (Import i in p.Imports){
+                Visit(i);
+            }
+
+            if (p.Imports.Count > 0){
+                _textWriter.WriteLine("");
+            }
+
             foreach (FunctionDefinition f in p.Functions){
                 Visit(f);
                 _textWriter.WriteLine();
@@ -69,8 +85,8 @@ public class ASTWriter{
             if (e.ResultParameter != null){
                 result = $"returns ({e.ResultParameter.Variable.Identifier} : {e.ResultParameter.Type.Identifier})";
             }
-            
-            _textWriter.WriteLine("method {0}({1}) {2}", e.Identifier, parameters, result);
+            string attributes = string.Join(" ", e.Attributes.Select(a => Serialize(a)));
+            _textWriter.WriteLine("method {0} {1}({2}) {3}", attributes, e.Identifier, parameters, result);
 
             if (e.Ensures != null){
                 _textWriter.Indent++;
@@ -105,6 +121,14 @@ public class ASTWriter{
             _textWriter.WriteLine("}");
         }
         
+        public void Visit(FieldAccessExpression e){
+            _textWriter.Write($"{Serialize(e.Object)}.{e.Field.Identifier}");
+        }
+
+        public void Visit(CallStatement e){
+            _textWriter.WriteLine($"{Serialize(e.CallExpression)};");
+        }
+
         public void Visit(FunctionDefinition e)
         {
             string parameters = string.Join(", ", e.Parameters.Select(p => $"{p.Variable.Identifier} : {p.Type.Identifier}"));
@@ -120,6 +144,23 @@ public class ASTWriter{
             _textWriter.WriteLine("}");
         }
 
+        public void Visit(SequenceExpression sequenceExpression){
+            string elements = string.Join(", ", sequenceExpression.Elements.Select(e => Serialize(e)));
+            _textWriter.Write($"[{elements}]");
+        }
+
+        public void Visit(Import e){
+            _textWriter.WriteLine($"import {e.Module}");    
+        }
+
+        public void Visit(ExpectStatement e){
+            _textWriter.WriteLine($"expect {Serialize(e.Condition)}, {Serialize(e.Message)};");
+        }
+
+        public void Visit(PrintStatement e){
+            string parameters = string.Join(", ", e.Expressions.Select(e => Serialize(e)));
+            _textWriter.WriteLine($"print {parameters};", parameters);
+        }
 
         public void Visit(CallExpression e){
             IEnumerable<string> parameters = e.Parameters.Select(p => Serialize(p));
@@ -156,9 +197,16 @@ public class ASTWriter{
             
         }
 
+        public void Visit(Attribute e){
+            if (e.Value == null){
+                _textWriter.Write("{:" + e.Name + " }");
+            } else{
+                _textWriter.Write("{:" + e.Name + " " + Serialize(e.Value) + " }");
+            }
+        }
         public void Visit(BinaryExpression e)
         {
-            _textWriter.Write($"{Serialize(e.LHS)} {SerializeOperator(e.Op)} {Serialize(e.RHS)}");
+            _textWriter.Write($"({Serialize(e.LHS)} {SerializeOperator(e.Op)} {Serialize(e.RHS)})");
         }
 
         public void Visit(MathIfThenElse e){
@@ -177,6 +225,21 @@ public class ASTWriter{
             } else {
                 _textWriter.WriteLine("return;");
             }
+        }
+
+        public void Visit(ModulusExpression e)
+        {
+            _textWriter.Write($"|{Serialize(e.Expr)}|");
+        }
+
+        public void Visit(IndexExpression e)
+        {
+            _textWriter.Write($"{Serialize(e.ArrayLike)}[{Serialize(e.Index)}]");
+        }
+
+        public void Visit(AsExpression e)
+        {
+            _textWriter.Write($"({Serialize(e.Expression)} as {Serialize(e.Type)})");
         }
     };
 

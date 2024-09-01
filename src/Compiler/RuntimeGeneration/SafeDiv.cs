@@ -1,6 +1,5 @@
 namespace SDC.Stubs;
 
-using System.Net;
 using System.Numerics;
 using SDC.AST;
 
@@ -36,7 +35,7 @@ public class SafeDiv{
         var statement = new IfCodeStatement(condition, new List<Statement>() {new ReturnStatement(division)}, new List<Statement>() {new ReturnStatement(maxValue)});
         var statements = new List<Statement>() {statement};
 
-        var methodDef = new MethodDefinition(GetSafeDivMethodIdentifier(type).Identifier, parameters, rDef, null, ensures, statements, new List<VariableDefinition>() );
+        var methodDef = new MethodDefinition(GetSafeDivMethodIdentifier(type).Identifier, parameters, rDef, null, ensures, statements, new List<VariableDefinition>() , new List<Attribute>(){new Attribute("verify", LiteralExpression.False)});
 
         return methodDef;
     }

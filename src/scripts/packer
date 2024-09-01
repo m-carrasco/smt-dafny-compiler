@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+
+def parse_value(value):
+    if value.lower().startswith('0x'):
+        return int(value, 16)
+    else:
+        return int(value)
+
+def main():
+    parser = argparse.ArgumentParser(description='Pack values into a file')
+
+    parser.add_argument('--value', action='append', nargs=2, metavar=('NUMBER', 'SIZE'),
+                        help='Provide a number (decimal or hex) and its size in bytes (decimal or hex).')
+    parser.add_argument('--output', type=str, required=True,
+                        help="Path to the output file that doesn't exist.")
+
+    args = parser.parse_args()
+
+    with open(args.output, 'wb') as f:
+        for num_str, size_str in args.value:
+            number = parse_value(num_str)
+            size = parse_value(size_str)
+            f.write(number.to_bytes(size, byteorder='little'))
+
+if __name__ == '__main__':
+    main()

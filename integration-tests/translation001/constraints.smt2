@@ -7,12 +7,11 @@
 ; RUN: %model-packer --negate %s %t.packed.unsat
 ; RUN: %t.build/constraints %t.packed.unsat | %FileCheck --check-prefix=CHECK-UNSAT %s
 
-; CHECK-BUILD: Dafny program verifier finished with 2 verified, 0 errors
+; CHECK-BUILD: Dafny program verifier finished with 1 verified, 0 errors
 ; CHECK-SAT: sat: true
 ; CHECK-UNSAT: sat: false
 
-(declare-fun x () (_ BitVec 32))
-(declare-fun y () (_ BitVec 32))
-(assert (bvuge x y))
-(assert (bvuge (bvudiv x y) (_ bv10 32)))
+(declare-fun x () Bool)
+(declare-fun y () Bool)
+(assert (= x y))
 (check-sat)

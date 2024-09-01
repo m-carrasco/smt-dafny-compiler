@@ -13,7 +13,7 @@ RUN chown -R ubuntu:mygroup /home/ubuntu
 USER ubuntu
 
 RUN sudo apt-get install --no-install-recommends -y dotnet-sdk-8.0 dotnet-sdk-6.0 git llvm-dev pip default-jdk wget make unzip
-RUN sudo pip install lit==16.0.5post0
+RUN sudo pip install lit==16.0.5post0 z3-solver==4.11.2
 RUN sudo ln -s /usr/bin/FileCheck-14 /usr/local/bin/FileCheck
 RUN sudo ln -s /usr/bin/not-14 /usr/local/bin/not 
 

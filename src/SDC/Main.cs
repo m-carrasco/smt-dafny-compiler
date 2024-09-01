@@ -16,8 +16,6 @@ class SDC{
     static void Compile(FileInfo inputSMT, DirectoryInfo outputDir){
         string smt2Content = File.ReadAllText(inputSMT.FullName);
 
-        // CAMBIAR SEMANTICA Y DEVOLVER MAX UINT EN LA DIVISION!!!
-        
         using (Context ctx = new Context())
         {
             BoolExpr[] constraints = ctx.ParseSMTLIB2String(smt2Content, null, null, null, null);
@@ -43,8 +41,11 @@ class SDC{
             List<Expression> ensureParams = methodDef.Parameters.Select(p => p.Variable.ToExpression()).Cast<Expression>().ToList();
 
             methodDef.Ensures = new BinaryExpression(new CallExpression(new IdentifierExpression(functionDef.Identifier), ensureParams), Operator.Equal, methodDef.ResultParameter.Variable.ToExpression());
-            Program program = new Program(functions, methods);
+            Program program = new Program(new List<Import>(), functions, methods);
 
+            MainGenerator mainGenerator = new MainGenerator();
+            mainGenerator.GenerateMain(program, methodDef);
+            
             outputDir.Create();
             File.WriteAllText(Path.Join(new string[] {outputDir.FullName, "compiled.dfy"}), ASTWriter.Serialize(program));
         }

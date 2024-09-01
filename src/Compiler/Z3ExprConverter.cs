@@ -71,14 +71,30 @@ public class Z3ExprConverter{
             if (z3Expr.IsApp){
                 switch (z3Expr.FuncDecl.DeclKind){
                     case Z3_decl_kind.Z3_OP_UGEQ:
+                    case Z3_decl_kind.Z3_OP_EQ:
                         {
+                            var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
+                            {
+                                [Z3_decl_kind.Z3_OP_UGEQ] = Operator.GreaterEq,
+                                [Z3_decl_kind.Z3_OP_EQ] = Operator.Equal,
+                            };
+
                             var a0 = _childConverter(z3Expr.Args[0]);
                             var a1 = _childConverter(z3Expr.Args[1]);
-                            dafnyExpr = new SDC.AST.BinaryExpression(a0, Operator.GreaterEq, a1);
+                            dafnyExpr = new SDC.AST.BinaryExpression(a0, operators[z3Expr.FuncDecl.DeclKind], a1);
                         }
                         break;
+                        case Z3_decl_kind.Z3_OP_UNINTERPRETED:
+                        {
+                            if (z3Expr.IsConst && z3Expr.NumArgs == 0){
+                                Parameters.Add(new VariableDefinition(new VariableReference(z3Expr.FuncDecl.Name.ToString()), Z3SortToDafny(z3Expr.Sort)));
+                                dafnyExpr = Parameters.Last().Variable.ToExpression();
+                                break;
+                            }
+                            throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
+                        }
                     default:
-                        throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
+                        throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind} {z3Expr.ToString()}");
                 }
             } else {
                 throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
