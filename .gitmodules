@@ -1,3 +1,6 @@
 [submodule "external/dafny"]
 	path = external/dafny
 	url = https://github.com/dafny-lang/dafny.git
+[submodule "external/SLOT"]
+	path = external/SLOT
+	url = git@github.com:m-carrasco/SLOT.git
