@@ -1,3 +1,4 @@
+FROM smt-dafny-compiler-slot:latest as build_slot
 FROM ubuntu:24.04
 
 ARG USER_ID
@@ -38,7 +39,7 @@ ENV SDC_DAFNY="${DAFNY_SRC_DIR}/Scripts/dafny"
 RUN mkdir /home/ubuntu/slot
 # SLOT is dynamically linked to Z3. 
 # Make sure that that the dependency is available and compatible.
-COPY --chown=ubuntu:mygroup --from=slot /root/slot /home/ubuntu/slot
+COPY --chown=ubuntu:mygroup --from=build_slot /root/slot /home/ubuntu/slot
 
 COPY --chown=ubuntu:mygroup . ${SDC_SRC_DIR}
 WORKDIR $SDC_SRC_DIR
