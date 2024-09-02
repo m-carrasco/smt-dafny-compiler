@@ -43,5 +43,5 @@ COPY --chown=ubuntu:mygroup --from=build_slot /root/slot /home/ubuntu/slot
 
 COPY --chown=ubuntu:mygroup . ${SDC_SRC_DIR}
 WORKDIR $SDC_SRC_DIR
-RUN cd src/ && dotnet test && dotnet build
+RUN $SDC_SRC_DIR/ci/publish-self-contained.sh && cd src/ && dotnet test
 RUN lit -vvv integration-tests/

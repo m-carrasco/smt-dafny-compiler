@@ -1,3 +1,4 @@
 ci/**
+!ci/publish-self-contained.sh
 ignore/**
 integration-tests/output/**
