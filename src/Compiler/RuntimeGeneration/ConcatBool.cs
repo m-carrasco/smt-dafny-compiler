@@ -23,10 +23,10 @@ public class ConcatBool
             new ExpectStatement(new BinaryExpression(new ModulusExpression(sDef.Variable.ToExpression()), Operator.GreaterEq, new LiteralExpression(requiredBytes.ToString())), new LiteralExpression("\"unexpected size\"")),
         };
 
-        Expression indexExpr = new IndexExpression(sDef.Variable.ToExpression(), new LiteralExpression("0"));
-        Expression condition = new BinaryExpression(indexExpr, Operator.Equal, new LiteralExpression("0"));
+        Expression indexExpr = new IndexExpression(sDef.Variable.ToExpression(), LiteralExpression.Zero);
+        Expression condition = new BinaryExpression(indexExpr, Operator.Equal, LiteralExpression.Zero);
 
-        statements.Add(new ReturnStatement(new MathIfThenElse(condition, new LiteralExpression("false"), new LiteralExpression("true"))));
+        statements.Add(new ReturnStatement(new MathIfThenElse(condition, LiteralExpression.False, LiteralExpression.True)));
 
         return new MethodDefinition(name, new List<VariableDefinition>() { sDef }, rDef, requires, null, statements, new List<VariableDefinition>() { }, new List<Attribute>() { new Attribute("verify", LiteralExpression.False) });
     }

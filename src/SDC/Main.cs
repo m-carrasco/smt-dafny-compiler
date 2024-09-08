@@ -102,7 +102,6 @@ class SDC
                 return Task.FromResult(1);
             }
 
-            // Proceed with the rest of your application logic here
             Compile(inputFunctionSMT, inputMethodSMT, outputDir);
 
             return Task.FromResult(0);

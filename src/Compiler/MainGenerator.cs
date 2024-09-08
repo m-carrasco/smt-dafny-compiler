@@ -30,7 +30,7 @@ public class MainGenerator
         var newLine = new LiteralExpression("\"\\n\"");
         //statements.Add(new PrintStatement(new List<Expression>() {argv.Variable.ToExpression(), newLine}));
 
-        var filePath = new IndexExpression(argv.Variable.ToExpression(), new LiteralExpression("1"));
+        var filePath = new IndexExpression(argv.Variable.ToExpression(), LiteralExpression.One);
         statements.Add(new AssignmentStatement(res.Variable, new CallExpression(new IdentifierExpression("FileIO.ReadBytesFromFile"), new List<Expression>() { filePath })));
 
         var successCond = new FieldAccessExpression(res.Variable.ToExpression(), new IdentifierExpression("Success?"));

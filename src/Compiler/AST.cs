@@ -285,6 +285,13 @@ public class LiteralExpression : Expression, IASTVisitable
     static public readonly LiteralExpression False = new LiteralExpression("false");
     static public readonly LiteralExpression True = new LiteralExpression("true");
     static public readonly LiteralExpression Zero = new LiteralExpression("0");
+    static public readonly LiteralExpression One = new LiteralExpression("1");
+
+    public static LiteralExpression Create(string literal)
+    {
+        return new LiteralExpression(literal);
+    }
+
     public string Literal;
     public LiteralExpression(string literal)
     {
