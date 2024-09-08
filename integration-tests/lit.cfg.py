@@ -28,6 +28,7 @@ config.test_exec_root = os.path.join(config.test_source_root, "output")
 if not os.path.exists(config.test_exec_root):
     os.mkdir(config.test_exec_root)
 
+config.substitutions.append(('%SLOT', os.environ['SDC_SLOT']))
 config.substitutions.append(('%SDC', config.compiler_cli_bin))
 config.substitutions.append(('%dafny', os.environ['SDC_DAFNY']))
 config.substitutions.append(('%FileCheck', os.environ['SDC_FILE_CHECK']))

@@ -61,6 +61,13 @@ public class Z3ExprConverter{
         return r;
     }
 
+    /*
+        The function returns a Dafny expression from a Z3 expression.
+        In addition, it updates public containers holding the free variables found, etc.
+
+        Make sure the function crashes under unsupported Z3 expressions.
+        Otherwise, if it doesn't, debugging will be difficult.
+    */
     public Expression Convert(Microsoft.Z3.Expr z3Expr){
         if (_conversionCache.TryGetValue(z3Expr.Id, out Expression result)){
             return result;
@@ -72,11 +79,13 @@ public class Z3ExprConverter{
                 switch (z3Expr.FuncDecl.DeclKind){
                     case Z3_decl_kind.Z3_OP_UGEQ:
                     case Z3_decl_kind.Z3_OP_EQ:
+                    case Z3_decl_kind.Z3_OP_UGT:
                         {
                             var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
                             {
                                 [Z3_decl_kind.Z3_OP_UGEQ] = Operator.GreaterEq,
                                 [Z3_decl_kind.Z3_OP_EQ] = Operator.Equal,
+                                [Z3_decl_kind.Z3_OP_UGT] = Operator.Greater,
                             };
 
                             var a0 = _childConverter(z3Expr.Args[0]);
@@ -84,7 +93,7 @@ public class Z3ExprConverter{
                             dafnyExpr = new SDC.AST.BinaryExpression(a0, operators[z3Expr.FuncDecl.DeclKind], a1);
                         }
                         break;
-                        case Z3_decl_kind.Z3_OP_UNINTERPRETED:
+                    case Z3_decl_kind.Z3_OP_UNINTERPRETED:
                         {
                             if (z3Expr.IsConst && z3Expr.NumArgs == 0){
                                 Parameters.Add(new VariableDefinition(new VariableReference(z3Expr.FuncDecl.Name.ToString()), Z3SortToDafny(z3Expr.Sort)));
@@ -92,6 +101,31 @@ public class Z3ExprConverter{
                                 break;
                             }
                             throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
+                        }
+                    case Z3_decl_kind.Z3_OP_TRUE:
+                        {
+                            dafnyExpr = LiteralExpression.True;
+                            break;
+                        }
+                    case Z3_decl_kind.Z3_OP_ITE:
+                        {
+                            var conditionExpr = Convert(z3Expr.Args[0]);
+                            var trueExpr = Convert(z3Expr.Args[1]);
+                            var falseExpr = Convert(z3Expr.Args[2]);
+                            dafnyExpr = new SDC.AST.MathIfThenElse(conditionExpr, trueExpr, falseExpr);
+                            break;
+                        }
+                    case Z3_decl_kind.Z3_OP_AND:
+                        {
+                            var child = z3Expr.Args.Select(arg => Convert(arg)).ToList();
+                            if (child.Count < 2){
+                                throw new NotSupportedException("AND expression has less than two sub-expressions");
+                            }
+                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], SDC.AST.Operator.And, child[1]);
+                            for (int i=2; i< child.Count; i++){
+                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, SDC.AST.Operator.And, child[i]);
+                            }
+                            break;
                         }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind} {z3Expr.ToString()}");

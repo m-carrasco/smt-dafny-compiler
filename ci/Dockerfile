@@ -40,6 +40,7 @@ RUN mkdir /home/ubuntu/slot
 # SLOT is dynamically linked to Z3. 
 # Make sure that that the dependency is available and compatible.
 COPY --chown=ubuntu:mygroup --from=build_slot /root/slot /home/ubuntu/slot
+ENV SDC_SLOT=/home/ubuntu/slot/slot
 
 COPY --chown=ubuntu:mygroup . ${SDC_SRC_DIR}
 WORKDIR $SDC_SRC_DIR
