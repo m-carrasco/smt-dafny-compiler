@@ -1,4 +1,4 @@
-# SDC (SMT Dafny Compiler)
+# SDC (SMT Dafny Compiler) [![Docker Image CI](https://github.com/m-carrasco/smt-dafny-compiler/actions/workflows/docker-image.yml/badge.svg)](https://github.com/m-carrasco/smt-dafny-compiler/actions/workflows/docker-image.yml)
 
 SDC compiles an SMT formula into a Dafny program. The synthesized program can then be verified to reveal bugs in Dafny.
 
@@ -38,5 +38,5 @@ dotnet format ./src/SMTDafnyCompiler.sln
 ## Usage
 
 ```bash
-TODO: For now check the integration tests
+TODO: For now, check the integration tests
 ```
