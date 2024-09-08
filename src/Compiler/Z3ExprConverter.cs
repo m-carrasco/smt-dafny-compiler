@@ -160,6 +160,16 @@ public class Z3ExprConverter
             {
                 switch (z3Expr.FuncDecl.DeclKind)
                 {
+                    case Z3_decl_kind.Z3_OP_BAND:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+
+                            var t = Z3SortToDafny(z3Expr.Sort);
+
+                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), Operator.BitwiseAnd, new SDC.AST.AsExpression(a1, t));
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_BUDIV:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);

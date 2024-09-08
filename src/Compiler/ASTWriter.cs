@@ -38,6 +38,8 @@ public class ASTWriter
                 return "&&";
             case Operator.BitwiseOr:
                 return "|";
+            case Operator.BitwiseAnd:
+                return "&";
             case Operator.Add:
                 return "+";
             case Operator.Multiply:
