@@ -73,6 +73,8 @@ public class Z3ExprConverter
         The function returns a Dafny expression from a Z3 expression.
         In addition, it updates public containers holding the free variables found, etc.
 
+        To process sub-expressions use the _childConverter lambda.
+
         Make sure the function crashes under unsupported Z3 expressions.
         Otherwise, if it doesn't, debugging will be difficult.
     */
@@ -123,15 +125,15 @@ public class Z3ExprConverter
                         }
                     case Z3_decl_kind.Z3_OP_ITE:
                         {
-                            var conditionExpr = Convert(z3Expr.Args[0]);
-                            var trueExpr = Convert(z3Expr.Args[1]);
-                            var falseExpr = Convert(z3Expr.Args[2]);
+                            var conditionExpr = _childConverter(z3Expr.Args[0]);
+                            var trueExpr = _childConverter(z3Expr.Args[1]);
+                            var falseExpr = _childConverter(z3Expr.Args[2]);
                             dafnyExpr = new SDC.AST.MathIfThenElse(conditionExpr, trueExpr, falseExpr);
                             break;
                         }
                     case Z3_decl_kind.Z3_OP_AND:
                         {
-                            var child = z3Expr.Args.Select(arg => Convert(arg)).ToList();
+                            var child = z3Expr.Args.Select(arg => _childConverter(arg)).ToList();
                             if (child.Count < 2)
                             {
                                 throw new NotSupportedException("AND expression has less than two sub-expressions");
