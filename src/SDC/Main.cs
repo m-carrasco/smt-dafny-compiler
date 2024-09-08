@@ -13,17 +13,17 @@ namespace SDC.CLI;
 
 class SDC
 {
-    static void Compile(FileInfo inputSMT, DirectoryInfo outputDir)
+    static void Compile(FileInfo inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
     {
-        string smt2Content = File.ReadAllText(inputSMT.FullName);
+        string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
+        string smt2MethodContent = File.ReadAllText(inputSMTMethod.FullName);
 
         using (Context ctx = new Context())
         {
-            BoolExpr[] constraints = ctx.ParseSMTLIB2String(smt2Content, null, null, null, null);
-
+            BoolExpr[] methodConstraints = ctx.ParseSMTLIB2String(smt2MethodContent, null, null, null, null);
             MethodConverter m = new MethodConverter();
             string methodName = "Constraints";
-            var methodDef = m.Convert(methodName, constraints);
+            var methodDef = m.Convert(methodName, methodConstraints);
 
             if (methodDef.ResultParameter == null)
             {
@@ -35,7 +35,8 @@ class SDC
 
             FunctionConverter f = new FunctionConverter();
             string functionName = "Spec";
-            var functionDef = f.Convert(functionName, constraints);
+            BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
+            var functionDef = f.Convert(functionName, functionConstraints);
 
             List<FunctionDefinition> functions = f.SafeDivSorts.Select(s => SafeDiv.GetSafeDivFunctionCode(s)).ToList();
             functions.Add(functionDef);
@@ -55,9 +56,16 @@ class SDC
 
     static async Task<int> Main(string[] args)
     {
-        var inputOption = new Option<FileInfo>(
-            name: "--input-smt2",
-            description: "The input SMT2 file for Dafny translation.")
+        var inputMethodOption = new Option<FileInfo>(
+            name: "--input-smt2-method",
+            description: "The input SMT2 file for Dafny translation (method / imperative code).")
+        {
+            IsRequired = true
+        };
+
+        var inputFunctionOption = new Option<FileInfo>(
+            name: "--input-smt2-function",
+            description: "The input SMT2 file for Dafny translation (function / mathematical specification).")
         {
             IsRequired = true
         };
@@ -70,14 +78,21 @@ class SDC
         };
 
         var rootCommand = new RootCommand("The SMT Dafny Compiler (SDC)");
-        rootCommand.AddOption(inputOption);
+        rootCommand.AddOption(inputFunctionOption);
+        rootCommand.AddOption(inputMethodOption);
         rootCommand.AddOption(outputOption);
 
-        rootCommand.SetHandler((inputSMT, outputDir) =>
+        rootCommand.SetHandler((inputFunctionSMT, inputMethodSMT, outputDir) =>
         {
-            if (!inputSMT.Exists)
+            if (!inputFunctionSMT.Exists)
             {
-                Console.Error.WriteLine($"Error: The input file '{inputSMT.FullName}' does not exist.");
+                Console.Error.WriteLine($"Error: The input function file '{inputFunctionSMT.FullName}' does not exist.");
+                return Task.FromResult(1);
+            }
+
+            if (!inputMethodSMT.Exists)
+            {
+                Console.Error.WriteLine($"Error: The input method file '{inputMethodSMT.FullName}' does not exist.");
                 return Task.FromResult(1);
             }
 
@@ -88,11 +103,11 @@ class SDC
             }
 
             // Proceed with the rest of your application logic here
-            Compile(inputSMT, outputDir);
+            Compile(inputFunctionSMT, inputMethodSMT, outputDir);
 
             return Task.FromResult(0);
         },
-        inputOption, outputOption);
+        inputFunctionOption, inputMethodOption, outputOption);
 
         return await rootCommand.InvokeAsync(args);
     }

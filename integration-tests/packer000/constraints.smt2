@@ -1,4 +1,4 @@
-; RUN: %SDC --input-smt2 %s --output-dir %T-out/
+; RUN: %SDC --input-smt2-function %s --input-smt2-method %s --output-dir %T-out/
 ; RUN: %dafny build --allow-warnings --standard-libraries %T-out/compiled.dfy -o %t.build/constraints.cs | %FileCheck --check-prefix=CHECK-BUILD %s
 
 ; RUN: %packer --value 1 5 --output %t.packed.sat

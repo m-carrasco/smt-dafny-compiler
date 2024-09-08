@@ -1,5 +1,5 @@
 ; RUN: %SLOT -s %s -pall -o %t.slot.smt2
-; RUN: %SDC --input-smt2-function %t.slot.smt2 --input-smt2-method %t.slot.smt2 --output-dir %T-out/
+; RUN: %SDC --input-smt2-function %t.slot.smt2 --input-smt2-method %s --output-dir %T-out/
 ; RUN: %dafny build --allow-warnings --standard-libraries %T-out/compiled.dfy -o %t.build/constraints.cs | %FileCheck --check-prefix=CHECK-BUILD %s
 
 ; RUN: %model-packer %s %t.packed.sat
