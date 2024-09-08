@@ -2,6 +2,11 @@
 
 SDC compiles an SMT formula into a Dafny program. The synthesized program can then be verified to reveal bugs in Dafny.
 
+## Requirements
+
+1. Docker
+2. .NET SDK 8.0
+
 ## Quick Setup
 
 ```bash
@@ -22,7 +27,7 @@ SDC compiles an SMT formula into a Dafny program. The synthesized program can th
 lit ./integration-tests -vvv
 ```
 
-## Code Style Before Pushing
+## Code Style
 
 Before pushing, ensure that the code is formatted correctly; otherwise, the CI will fail.
 
