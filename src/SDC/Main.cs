@@ -2,18 +2,19 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using System.Threading.Tasks;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Microsoft.Z3;
 using SDC.AST;
 using SDC.Converter;
 using SDC.Stubs;
-using Microsoft.Z3;
 
 namespace SDC.CLI;
 
-class SDC{
-    static void Compile(FileInfo inputSMT, DirectoryInfo outputDir){
+class SDC
+{
+    static void Compile(FileInfo inputSMT, DirectoryInfo outputDir)
+    {
         string smt2Content = File.ReadAllText(inputSMT.FullName);
 
         using (Context ctx = new Context())
@@ -24,11 +25,12 @@ class SDC{
             string methodName = "Constraints";
             var methodDef = m.Convert(methodName, constraints);
 
-            if (methodDef.ResultParameter == null){
+            if (methodDef.ResultParameter == null)
+            {
                 throw new Exception("Missing result parameter");
             }
-            
-            List<MethodDefinition> methods = m.SafeDivSorts.Select(s =>  SafeDiv.GetSafeDivMethodCode(s)).ToList();
+
+            List<MethodDefinition> methods = m.SafeDivSorts.Select(s => SafeDiv.GetSafeDivMethodCode(s)).ToList();
             methods.Add(methodDef);
 
             FunctionConverter f = new FunctionConverter();
@@ -45,9 +47,9 @@ class SDC{
 
             MainGenerator mainGenerator = new MainGenerator();
             mainGenerator.GenerateMain(program, methodDef);
-            
+
             outputDir.Create();
-            File.WriteAllText(Path.Join(new string[] {outputDir.FullName, "compiled.dfy"}), ASTWriter.Serialize(program));
+            File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "compiled.dfy" }), ASTWriter.Serialize(program));
         }
     }
 
