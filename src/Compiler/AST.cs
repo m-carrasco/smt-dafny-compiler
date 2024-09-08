@@ -1,24 +1,29 @@
-namespace SDC.AST;
+﻿namespace SDC.AST;
 
-public class VariableDefinition{
+public class VariableDefinition
+{
     public VariableReference Variable;
     public TypeReference Type;
 
-    public VariableDefinition(VariableReference variable, TypeReference type){
+    public VariableDefinition(VariableReference variable, TypeReference type)
+    {
         this.Variable = variable;
         this.Type = type;
     }
 };
 
-public interface IASTVisitable{
+public interface IASTVisitable
+{
     void Accept(IASTVisitor visitor);
 };
 
-public interface IIdentifier : IASTVisitable {
+public interface IIdentifier : IASTVisitable
+{
     string Identifier { get; }
 };
 
-public interface IASTVisitor{
+public interface IASTVisitor
+{
     void Visit(IIdentifier identifier);
     void Visit(Attribute e);
     void Visit(MethodDefinition e);
@@ -74,16 +79,19 @@ public class TypeReference : IIdentifier, IASTVisitable
         return Identifier.GetHashCode();
     }
 
-    public bool IsBoolType(){
+    public bool IsBoolType()
+    {
         return _identifier.Equals("bool");
     }
 
-    public bool IsBVType(){
+    public bool IsBVType()
+    {
         return _identifier.StartsWith("bv");
     }
 };
 
-public class VariableReference : IIdentifier, IASTVisitable{
+public class VariableReference : IIdentifier, IASTVisitable
+{
     public string Identifier => _identifier;
     private string _identifier;
 
@@ -97,16 +105,19 @@ public class VariableReference : IIdentifier, IASTVisitable{
         visitor.Visit(this);
     }
 
-    public IdentifierExpression ToExpression(){
+    public IdentifierExpression ToExpression()
+    {
         return new IdentifierExpression(Identifier);
     }
 };
 
-public abstract class Expression : IASTVisitable{
+public abstract class Expression : IASTVisitable
+{
     public abstract void Accept(IASTVisitor visitor);
 };
 
-public enum Operator{
+public enum Operator
+{
     Greater,
     GreaterEq,
     LessEq,
@@ -120,11 +131,13 @@ public enum Operator{
     Shl
 };
 
-public class FieldAccessExpression : Expression, IASTVisitable{
+public class FieldAccessExpression : Expression, IASTVisitable
+{
     public Expression Object;
     public IdentifierExpression Field;
 
-    public FieldAccessExpression(Expression o, IdentifierExpression f){
+    public FieldAccessExpression(Expression o, IdentifierExpression f)
+    {
         Object = o;
         Field = f;
     }
@@ -139,7 +152,8 @@ public class AsExpression : Expression
 {
     public Expression Expression;
     public TypeReference Type;
-    public AsExpression(Expression expression, TypeReference type){
+    public AsExpression(Expression expression, TypeReference type)
+    {
         Expression = expression;
         Type = type;
     }
@@ -149,11 +163,13 @@ public class AsExpression : Expression
     }
 }
 
-public class Attribute : IASTVisitable{
+public class Attribute : IASTVisitable
+{
     public String Name;
     public Expression? Value;
 
-    public Attribute(string name, Expression value){
+    public Attribute(string name, Expression value)
+    {
         Name = name;
         Value = value;
     }
@@ -181,7 +197,8 @@ public class CallExpression : Expression, IASTVisitable
 
 public class IdentifierExpression : Expression, IIdentifier
 {
-    public IdentifierExpression(string identifier) {
+    public IdentifierExpression(string identifier)
+    {
         this._identifier = identifier;
     }
 
@@ -199,7 +216,8 @@ public class BinaryExpression : Expression
     public Expression RHS;
     public Operator Op;
 
-    public BinaryExpression(Expression lhs, Operator op, Expression rhs){
+    public BinaryExpression(Expression lhs, Operator op, Expression rhs)
+    {
         LHS = lhs;
         Op = op;
         RHS = rhs;
@@ -216,7 +234,8 @@ public class MathIfThenElse : Expression
     public Expression Condition;
     public Expression TrueExpression;
     public Expression FalseExpression;
-    public MathIfThenElse(Expression condition, Expression trueExpression, Expression falseExpression){
+    public MathIfThenElse(Expression condition, Expression trueExpression, Expression falseExpression)
+    {
         Condition = condition;
         TrueExpression = trueExpression;
         FalseExpression = falseExpression;
@@ -227,13 +246,16 @@ public class MathIfThenElse : Expression
     }
 };
 
-public abstract class Statement : IASTVisitable{
+public abstract class Statement : IASTVisitable
+{
     abstract public void Accept(IASTVisitor visitor);
 };
 
-public class ModulusExpression : Expression, IASTVisitable {
+public class ModulusExpression : Expression, IASTVisitable
+{
     public Expression Expr;
-    public ModulusExpression(Expression e){
+    public ModulusExpression(Expression e)
+    {
         Expr = e;
     }
     public override void Accept(IASTVisitor visitor)
@@ -242,10 +264,12 @@ public class ModulusExpression : Expression, IASTVisitable {
     }
 }
 
-public class IndexExpression : Expression {
+public class IndexExpression : Expression
+{
     public Expression ArrayLike;
     public Expression Index;
-    public IndexExpression(Expression arrayLike, Expression index){
+    public IndexExpression(Expression arrayLike, Expression index)
+    {
         ArrayLike = arrayLike;
         Index = index;
 
@@ -256,12 +280,14 @@ public class IndexExpression : Expression {
     }
 }
 
-public class LiteralExpression : Expression, IASTVisitable{
+public class LiteralExpression : Expression, IASTVisitable
+{
     static public readonly LiteralExpression False = new LiteralExpression("false");
     static public readonly LiteralExpression True = new LiteralExpression("true");
     static public readonly LiteralExpression Zero = new LiteralExpression("0");
     public string Literal;
-    public LiteralExpression(string literal) {
+    public LiteralExpression(string literal)
+    {
         Literal = literal;
     }
     public override void Accept(IASTVisitor visitor)
@@ -270,11 +296,13 @@ public class LiteralExpression : Expression, IASTVisitable{
     }
 };
 
-public class ExpectStatement : Statement {
+public class ExpectStatement : Statement
+{
     public Expression Condition;
     public Expression Message;
 
-    public ExpectStatement(Expression condition, Expression message){
+    public ExpectStatement(Expression condition, Expression message)
+    {
         Condition = condition;
         Message = message;
     }
@@ -285,8 +313,10 @@ public class ExpectStatement : Statement {
     }
 };
 
-public class AssignmentStatement : Statement{
-    public AssignmentStatement(VariableReference lhs, Expression rhs){
+public class AssignmentStatement : Statement
+{
+    public AssignmentStatement(VariableReference lhs, Expression rhs)
+    {
         LHS = lhs;
         RHS = rhs;
     }
@@ -300,9 +330,11 @@ public class AssignmentStatement : Statement{
     }
 };
 
-public class CallStatement : Statement {
+public class CallStatement : Statement
+{
     public CallExpression CallExpression;
-    public CallStatement(CallExpression callExpression) {
+    public CallStatement(CallExpression callExpression)
+    {
         CallExpression = callExpression;
     }
     public override void Accept(IASTVisitor visitor)
@@ -311,8 +343,10 @@ public class CallStatement : Statement {
     }
 };
 
-public class ReturnStatement : Statement{
-    public ReturnStatement(Expression returnedValue){
+public class ReturnStatement : Statement
+{
+    public ReturnStatement(Expression returnedValue)
+    {
         ReturnedValue = returnedValue;
     }
 
@@ -324,9 +358,11 @@ public class ReturnStatement : Statement{
     }
 };
 
-public class IfCodeStatement : Statement{
+public class IfCodeStatement : Statement
+{
 
-    public IfCodeStatement(Expression condition, List<Statement> trueBlock, List<Statement> falseBlock){
+    public IfCodeStatement(Expression condition, List<Statement> trueBlock, List<Statement> falseBlock)
+    {
         Condition = condition;
         TrueBlock = trueBlock;
         FalseBlock = falseBlock;
@@ -342,9 +378,11 @@ public class IfCodeStatement : Statement{
     }
 };
 
-public class SequenceExpression : Expression, IASTVisitable{
+public class SequenceExpression : Expression, IASTVisitable
+{
     public List<Expression> Elements;
-    public SequenceExpression(List<Expression> elements){
+    public SequenceExpression(List<Expression> elements)
+    {
         Elements = elements;
     }
 
@@ -354,10 +392,12 @@ public class SequenceExpression : Expression, IASTVisitable{
     }
 };
 
-public class PrintStatement : Statement {
+public class PrintStatement : Statement
+{
     public List<Expression> Expressions;
 
-    public PrintStatement(List<Expression> expressions){
+    public PrintStatement(List<Expression> expressions)
+    {
         Expressions = expressions;
     }
 
@@ -367,7 +407,8 @@ public class PrintStatement : Statement {
     }
 };
 
-public class MethodReference : IIdentifier {
+public class MethodReference : IIdentifier
+{
     public string Identifier => _identifier;
     private string _identifier;
     public List<TypeReference> ParameterTypes => _parameterTypes;
@@ -382,12 +423,14 @@ public class MethodReference : IIdentifier {
     {
         visitor.Visit(this);
     }
-    public IdentifierExpression ToExpression(){
+    public IdentifierExpression ToExpression()
+    {
         return new IdentifierExpression(Identifier);
     }
 };
 
-public class FunctionDefinition : IIdentifier, IASTVisitable {
+public class FunctionDefinition : IIdentifier, IASTVisitable
+{
     public string Identifier => _identifier;
     private string _identifier;
     public List<VariableDefinition> Parameters;
@@ -402,16 +445,19 @@ public class FunctionDefinition : IIdentifier, IASTVisitable {
         this.Expression = expression;
     }
 
-    public void Accept(IASTVisitor visitor){
+    public void Accept(IASTVisitor visitor)
+    {
         visitor.Visit(this);
     }
 
-    public IdentifierExpression ToExpression(){
+    public IdentifierExpression ToExpression()
+    {
         return new IdentifierExpression(Identifier);
     }
 };
 
-public class MethodDefinition : IIdentifier, IASTVisitable {
+public class MethodDefinition : IIdentifier, IASTVisitable
+{
     public string Identifier => _identifier;
     private string _identifier;
     public List<VariableDefinition> Parameters;
@@ -434,14 +480,17 @@ public class MethodDefinition : IIdentifier, IASTVisitable {
         this.Attributes = attributes;
     }
 
-    public void Accept(IASTVisitor visitor){
+    public void Accept(IASTVisitor visitor)
+    {
         visitor.Visit(this);
     }
 };
 
-public class Import : IASTVisitable{
+public class Import : IASTVisitable
+{
     public String Module;
-    public Import(String m){
+    public Import(String m)
+    {
         this.Module = m;
     }
     public void Accept(IASTVisitor visitor)
@@ -454,7 +503,8 @@ public class Program : IASTVisitable
     public List<Import> Imports;
     public List<FunctionDefinition> Functions;
     public List<MethodDefinition> Methods;
-    public Program(List<Import> Imports, List<FunctionDefinition> Functions, List<MethodDefinition> Methods){
+    public Program(List<Import> Imports, List<FunctionDefinition> Functions, List<MethodDefinition> Methods)
+    {
         this.Functions = Functions;
         this.Methods = Methods;
         this.Imports = Imports;

@@ -1,11 +1,13 @@
-namespace SDC.AST;
+﻿namespace SDC.AST;
 using System.CodeDom.Compiler;
 using SDC.AST;
 
-public class ASTWriter{
+public class ASTWriter
+{
     public IndentedTextWriter TextWriter;
 
-    public static string Serialize(IASTVisitable v){
+    public static string Serialize(IASTVisitable v)
+    {
         StringWriter stringWriter = new();
         var w = new ASTWriter(new IndentedTextWriter(stringWriter));
         w.Write(v);
@@ -13,12 +15,15 @@ public class ASTWriter{
         return stringWriter.ToString();
     }
 
-    public ASTWriter(IndentedTextWriter textWriter){
+    public ASTWriter(IndentedTextWriter textWriter)
+    {
         this.TextWriter = textWriter;
     }
 
-    public static string SerializeOperator(Operator op){
-        switch (op) {
+    public static string SerializeOperator(Operator op)
+    {
+        switch (op)
+        {
             case Operator.Equal:
                 return "==";
             case Operator.NotEqual:
@@ -48,7 +53,8 @@ public class ASTWriter{
     {
         private IndentedTextWriter _textWriter;
 
-        public Visitor(IndentedTextWriter texterWriter){
+        public Visitor(IndentedTextWriter texterWriter)
+        {
             this._textWriter = texterWriter;
         }
 
@@ -57,21 +63,26 @@ public class ASTWriter{
             _textWriter.Write(identifier.Identifier);
         }
 
-        public void Visit(SDC.AST.Program p){
-            foreach (Import i in p.Imports){
+        public void Visit(SDC.AST.Program p)
+        {
+            foreach (Import i in p.Imports)
+            {
                 Visit(i);
             }
 
-            if (p.Imports.Count > 0){
+            if (p.Imports.Count > 0)
+            {
                 _textWriter.WriteLine("");
             }
 
-            foreach (FunctionDefinition f in p.Functions){
+            foreach (FunctionDefinition f in p.Functions)
+            {
                 Visit(f);
                 _textWriter.WriteLine();
             }
 
-            foreach (MethodDefinition m in p.Methods){
+            foreach (MethodDefinition m in p.Methods)
+            {
                 Visit(m);
                 _textWriter.WriteLine();
             }
@@ -82,19 +93,22 @@ public class ASTWriter{
             string parameters = string.Join(", ", e.Parameters.Select(p => $"{p.Variable.Identifier} : {p.Type.Identifier}"));
 
             string result = string.Empty;
-            if (e.ResultParameter != null){
+            if (e.ResultParameter != null)
+            {
                 result = $"returns ({e.ResultParameter.Variable.Identifier} : {e.ResultParameter.Type.Identifier})";
             }
             string attributes = string.Join(" ", e.Attributes.Select(a => Serialize(a)));
             _textWriter.WriteLine("method {0} {1}({2}) {3}", attributes, e.Identifier, parameters, result);
 
-            if (e.Ensures != null){
+            if (e.Ensures != null)
+            {
                 _textWriter.Indent++;
                 _textWriter.WriteLine($"ensures {Serialize(e.Ensures)}");
                 _textWriter.Indent--;
             }
 
-            if (e.Requires != null){
+            if (e.Requires != null)
+            {
                 _textWriter.Indent++;
                 _textWriter.WriteLine($"requires {Serialize(e.Requires)}");
                 _textWriter.Indent--;
@@ -103,16 +117,20 @@ public class ASTWriter{
             _textWriter.WriteLine("{");
             _textWriter.Indent += 1;
 
-            foreach (VariableDefinition local in e.LocalVariables){
+            foreach (VariableDefinition local in e.LocalVariables)
+            {
                 _textWriter.WriteLine($"var {local.Variable.Identifier} : {local.Type.Identifier};");
             }
 
-            if (e.LocalVariables.Count > 0){
+            if (e.LocalVariables.Count > 0)
+            {
                 _textWriter.WriteLine("");
             }
 
-            if (e.Statements != null){
-                foreach (Statement s in e.Statements){
+            if (e.Statements != null)
+            {
+                foreach (Statement s in e.Statements)
+                {
                     s.Accept(this);
                 }
             }
@@ -120,19 +138,21 @@ public class ASTWriter{
             _textWriter.Indent -= 1;
             _textWriter.WriteLine("}");
         }
-        
-        public void Visit(FieldAccessExpression e){
+
+        public void Visit(FieldAccessExpression e)
+        {
             _textWriter.Write($"{Serialize(e.Object)}.{e.Field.Identifier}");
         }
 
-        public void Visit(CallStatement e){
+        public void Visit(CallStatement e)
+        {
             _textWriter.WriteLine($"{Serialize(e.CallExpression)};");
         }
 
         public void Visit(FunctionDefinition e)
         {
             string parameters = string.Join(", ", e.Parameters.Select(p => $"{p.Variable.Identifier} : {p.Type.Identifier}"));
-            
+
             _textWriter.WriteLine("function {0}({1}) : {2}", e.Identifier, parameters, Serialize(e.ResultType));
 
             _textWriter.WriteLine("{");
@@ -144,25 +164,30 @@ public class ASTWriter{
             _textWriter.WriteLine("}");
         }
 
-        public void Visit(SequenceExpression sequenceExpression){
+        public void Visit(SequenceExpression sequenceExpression)
+        {
             string elements = string.Join(", ", sequenceExpression.Elements.Select(e => Serialize(e)));
             _textWriter.Write($"[{elements}]");
         }
 
-        public void Visit(Import e){
-            _textWriter.WriteLine($"import {e.Module}");    
+        public void Visit(Import e)
+        {
+            _textWriter.WriteLine($"import {e.Module}");
         }
 
-        public void Visit(ExpectStatement e){
+        public void Visit(ExpectStatement e)
+        {
             _textWriter.WriteLine($"expect {Serialize(e.Condition)}, {Serialize(e.Message)};");
         }
 
-        public void Visit(PrintStatement e){
+        public void Visit(PrintStatement e)
+        {
             string parameters = string.Join(", ", e.Expressions.Select(e => Serialize(e)));
             _textWriter.WriteLine($"print {parameters};", parameters);
         }
 
-        public void Visit(CallExpression e){
+        public void Visit(CallExpression e)
+        {
             IEnumerable<string> parameters = e.Parameters.Select(p => Serialize(p));
             string paramList = string.Join(", ", parameters);
             _textWriter.Write($"{e.CalledExpression.Identifier}({paramList})");
@@ -177,30 +202,39 @@ public class ASTWriter{
         {
             _textWriter.WriteLine($"if ({Serialize(e.Condition)}) {{");
             _textWriter.Indent++;
-            foreach (Statement s in e.TrueBlock){
+            foreach (Statement s in e.TrueBlock)
+            {
                 s.Accept(this);
             }
             _textWriter.Indent--;
-            
 
-            if (e.FalseBlock.Count == 0){
+
+            if (e.FalseBlock.Count == 0)
+            {
                 _textWriter.WriteLine("}");
-            } else {
-               _textWriter.WriteLine("} else {"); 
+            }
+            else
+            {
+                _textWriter.WriteLine("} else {");
                 _textWriter.Indent++;
-                foreach (Statement s in e.FalseBlock){
+                foreach (Statement s in e.FalseBlock)
+                {
                     s.Accept(this);
                 }
                 _textWriter.Indent--;
-               _textWriter.WriteLine("}");
+                _textWriter.WriteLine("}");
             }
-            
+
         }
 
-        public void Visit(Attribute e){
-            if (e.Value == null){
+        public void Visit(Attribute e)
+        {
+            if (e.Value == null)
+            {
                 _textWriter.Write("{:" + e.Name + " }");
-            } else{
+            }
+            else
+            {
                 _textWriter.Write("{:" + e.Name + " " + Serialize(e.Value) + " }");
             }
         }
@@ -209,7 +243,8 @@ public class ASTWriter{
             _textWriter.Write($"({Serialize(e.LHS)} {SerializeOperator(e.Op)} {Serialize(e.RHS)})");
         }
 
-        public void Visit(MathIfThenElse e){
+        public void Visit(MathIfThenElse e)
+        {
             _textWriter.Write($"(if {Serialize(e.Condition)} then {Serialize(e.TrueExpression)} else {Serialize(e.FalseExpression)})");
         }
 
@@ -220,9 +255,12 @@ public class ASTWriter{
 
         public void Visit(ReturnStatement e)
         {
-            if (e.ReturnedValue != null){
+            if (e.ReturnedValue != null)
+            {
                 _textWriter.WriteLine($"return {Serialize(e.ReturnedValue)};");
-            } else {
+            }
+            else
+            {
                 _textWriter.WriteLine("return;");
             }
         }
@@ -243,7 +281,8 @@ public class ASTWriter{
         }
     };
 
-    public void Write(IASTVisitable astVisitable){
+    public void Write(IASTVisitable astVisitable)
+    {
         Visitor v = new Visitor(this.TextWriter);
         astVisitable.Accept(v);
     }
