@@ -10,7 +10,8 @@
 		"vscode": {
 			"extensions": [
 				"ms-dotnettools.csdevkit",
-				"ms-vscode.hexeditor"
+				"ms-vscode.hexeditor",
+				"ms-vscode-remote.remote-ssh"
 			]
 		}
 	}
