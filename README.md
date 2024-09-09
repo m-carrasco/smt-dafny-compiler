@@ -7,7 +7,18 @@ SDC compiles an SMT formula into a Dafny program. The synthesized program can th
 1. Docker
 2. .NET SDK 8.0
 
-## Quick Setup
+
+## Visual Studio Code: Dev Container 
+
+In this way, Visual Studio Code runs inside a container. The project is configured so that changes to the repository in the container are reflected outside.
+
+1. Build the required Docker images: ```./ci/build-images.sh```.
+2. In Visual Studio Code, click `> Dev Containers: Rebuild and Reopen in Container`.
+3. Open a terminal in Visual Studio Code, now mapped to the Docker container.
+4. Build the project: ```./ci/publish-self-contained.sh```.
+5. Test the project: ```lit ./integration-tests -vvv```.
+
+## Alternative Quick Setup
 
 ```bash
 # Build the required Docker images.
