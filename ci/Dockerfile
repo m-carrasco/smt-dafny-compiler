@@ -18,7 +18,7 @@ RUN sudo apt-get install --no-install-recommends -y software-properties-common &
     sudo add-apt-repository ppa:dotnet/backports && \
     sudo apt-get update
 
-RUN sudo apt-get install --no-install-recommends -y dotnet-sdk-8.0 dotnet-sdk-6.0 wget git llvm-dev pip default-jdk make unzip nano && \
+RUN sudo apt-get install --no-install-recommends -y dotnet-sdk-8.0 dotnet-sdk-6.0 wget git llvm-dev pip default-jdk make unzip nano ssh && \
     sudo apt-get clean && \
     sudo rm -rf /var/lib/apt/lists/*
 
