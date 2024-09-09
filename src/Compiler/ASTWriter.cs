@@ -34,6 +34,8 @@ public class ASTWriter
                 return ">=";
             case Operator.Division:
                 return "/";
+            case Operator.Mod:
+                return "%";
             case Operator.And:
                 return "&&";
             case Operator.BitwiseOr:

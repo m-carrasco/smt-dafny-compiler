@@ -123,6 +123,11 @@ public class Z3ExprConverter
                             dafnyExpr = LiteralExpression.True;
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_FALSE:
+                        {
+                            dafnyExpr = LiteralExpression.False;
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_ITE:
                         {
                             var conditionExpr = _childConverter(z3Expr.Args[0]);
@@ -160,7 +165,20 @@ public class Z3ExprConverter
             {
                 switch (z3Expr.FuncDecl.DeclKind)
                 {
-                    case Z3_decl_kind.Z3_OP_BAND:
+                    case Z3_decl_kind.Z3_OP_BSMOD:
+                        {
+                            // Cast operands to ints because bvs do not have this operator in Dafny.
+                            // The result must be casted back to a bv.
+
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+
+                            var t = new TypeReference("int");
+                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), Operator.Mod, new SDC.AST.AsExpression(a1, t));
+                            dafnyExpr = new SDC.AST.AsExpression(dafnyExpr, Z3SortToDafny(z3Expr.Sort));
+                            break;
+                        }
+                    case Z3_decl_kind.Z3_OP_BAND: // Cast operands to bv (in case they are constants)
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
                             var a1 = _childConverter(z3Expr.Args[1]);

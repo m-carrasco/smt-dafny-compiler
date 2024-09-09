@@ -127,6 +127,7 @@ public enum Operator
     And,
     BitwiseOr,
     BitwiseAnd,
+    Mod,
     Add,
     Multiply,
     Shl
