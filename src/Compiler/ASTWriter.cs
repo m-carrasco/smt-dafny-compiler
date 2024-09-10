@@ -42,6 +42,8 @@ public class ASTWriter
                 return "|";
             case Operator.BitwiseAnd:
                 return "&";
+            case Operator.BitwiseNot:
+                return "!";
             case Operator.Add:
                 return "+";
             case Operator.Multiply:
@@ -246,6 +248,12 @@ public class ASTWriter
         {
             _textWriter.Write($"({Serialize(e.LHS)} {SerializeOperator(e.Op)} {Serialize(e.RHS)})");
         }
+
+        public void Visit(UnaryExpression e)
+        {
+            _textWriter.Write($"({SerializeOperator(e.Op)} {Serialize(e.Expr)})");
+        }
+
 
         public void Visit(MathIfThenElse e)
         {

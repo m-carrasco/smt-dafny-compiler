@@ -165,6 +165,12 @@ public class Z3ExprConverter
             {
                 switch (z3Expr.FuncDecl.DeclKind)
                 {
+                    case Z3_decl_kind.Z3_OP_BNOT:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            dafnyExpr = new SDC.AST.UnaryExpression(new SDC.AST.AsExpression(a0, Z3SortToDafny(z3Expr.Sort)), Operator.BitwiseNot);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_BSMOD:
                         {
                             // Cast operands to ints because bvs do not have this operator in Dafny.

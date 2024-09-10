@@ -32,6 +32,7 @@ public interface IASTVisitor
     void Visit(IfCodeStatement e);
     void Visit(CallStatement e);
     void Visit(BinaryExpression e);
+    void Visit(UnaryExpression e);
     void Visit(ModulusExpression e);
     void Visit(IndexExpression e);
     void Visit(SequenceExpression e);
@@ -127,6 +128,7 @@ public enum Operator
     And,
     BitwiseOr,
     BitwiseAnd,
+    BitwiseNot,
     Mod,
     Add,
     Multiply,
@@ -223,6 +225,23 @@ public class BinaryExpression : Expression
         LHS = lhs;
         Op = op;
         RHS = rhs;
+    }
+
+    public override void Accept(IASTVisitor visitor)
+    {
+        visitor.Visit(this);
+    }
+};
+
+public class UnaryExpression : Expression
+{
+    public Expression Expr;
+    public Operator Op;
+
+    public UnaryExpression(Expression expr, Operator op)
+    {
+        Expr = expr;
+        Op = op;
     }
 
     public override void Accept(IASTVisitor visitor)
