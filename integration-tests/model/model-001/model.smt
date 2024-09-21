@@ -1,0 +1,5 @@
+(declare-fun x () (_ BitVec 32))
+(declare-fun y () (_ BitVec 32))
+(assert (= x (_ bv100 32)))
+(assert (= y (_ bv10 32)))
+(check-sat)
