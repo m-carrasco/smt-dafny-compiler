@@ -1,7 +1,7 @@
 ; COM: QF_BV/dwp_formulas/try3_true_functions_fse-bfs_yes.close_stdout_set_file_name.il.fse-bfs.smt2
 
 ; RUN: %SLOT -s %s -pall -o %t.slot.smt2
-; RUN: %SDC --input-smt2-function %t.slot.smt2 --input-smt2-method %s --output-dir %t.out/
+; RUN: %SDC compile pointwise --output-dir %t.out/ --input-smt2-function %t.slot.smt2 --input-smt2-method %s
 ; RUN: %dafny build --allow-warnings --standard-libraries %t.out/compiled.dfy -o %t.build/constraints.cs | %FileCheck --check-prefix=CHECK-BUILD %s
 
 ; RUN: %model-packer %s %t.packed.sat

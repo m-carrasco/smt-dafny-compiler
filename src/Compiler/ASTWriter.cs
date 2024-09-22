@@ -106,17 +106,17 @@ public class ASTWriter
             string attributes = string.Join(" ", e.Attributes.Select(a => Serialize(a)));
             _textWriter.WriteLine("method {0} {1}({2}) {3}", attributes, e.Identifier, parameters, result);
 
-            if (e.Ensures != null)
-            {
-                _textWriter.Indent++;
-                _textWriter.WriteLine($"ensures {Serialize(e.Ensures)}");
-                _textWriter.Indent--;
-            }
-
             if (e.Requires != null)
             {
                 _textWriter.Indent++;
                 _textWriter.WriteLine($"requires {Serialize(e.Requires)}");
+                _textWriter.Indent--;
+            }
+
+            if (e.Ensures != null)
+            {
+                _textWriter.Indent++;
+                _textWriter.WriteLine($"ensures {Serialize(e.Ensures)}");
                 _textWriter.Indent--;
             }
 
