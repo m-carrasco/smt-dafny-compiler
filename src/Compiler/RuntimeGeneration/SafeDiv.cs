@@ -3,14 +3,14 @@
 using System.Numerics;
 using SDC.AST;
 
-public class SafeDiv
+public class SafeUnsignedDiv
 {
     public static IdentifierExpression GetSafeDivMethodIdentifier(SDC.AST.TypeReference type)
     {
         return new IdentifierExpression("SafeDivMethod_@TYPENAME".Replace("@TYPENAME", type.Identifier));
     }
 
-    private static LiteralExpression MaxValueBits(TypeReference type)
+    public static LiteralExpression MaxValueBits(TypeReference type)
     {
         string identifier = type.Identifier;
         if (identifier.StartsWith("bv"))

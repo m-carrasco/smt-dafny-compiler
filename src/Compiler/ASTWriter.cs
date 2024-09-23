@@ -44,12 +44,16 @@ public class ASTWriter
                 return "&";
             case Operator.BitwiseNot:
                 return "!";
+            case Operator.BitwiseXor:
+                return "^";
             case Operator.Add:
                 return "+";
             case Operator.Multiply:
                 return "*";
             case Operator.Shl:
                 return "<<";
+            case Operator.Shr:
+                return ">>";
         }
 
         throw new NotImplementedException();

@@ -12,15 +12,14 @@ public class MethodConverter
     private List<VariableDefinition> _parameters = new List<VariableDefinition>();
     private List<Statement> _statements = new List<Statement>();
     private Z3ExprConverter _exprConverter;
-    public List<TypeReference> SafeDivSorts = new();
 
-    public SDC.AST.MethodDefinition Convert(string name, Z3BoolExpr[] assertions)
+    public SDC.AST.MethodDefinition Convert(string name, Z3BoolExpr[] assertions, ISet<TypeReference> preludeTypes)
     {
         _conversionCache = new Dictionary<uint, IdentifierExpression>();
         _localVariables = new List<VariableDefinition>();
         _statements = new List<Statement>();
         // Use the assigned local variable for child expressions.
-        _exprConverter = Z3ExprConverter.CreateMethodConverter(e => _conversionCache[e.Id]);
+        _exprConverter = Z3ExprConverter.CreateMethodConverter(e => _conversionCache[e.Id], preludeTypes);
         _parameters = _exprConverter.Parameters;
 
         foreach (Z3BoolExpr e in assertions)
@@ -34,8 +33,6 @@ public class MethodConverter
         _statements.Add(new ReturnStatement(LiteralExpression.True));
         _localVariables.Sort((a, b) => a.Variable.Identifier.CompareTo(b.Variable.Identifier));
         var methodDef = new SDC.AST.MethodDefinition(name, _parameters, new VariableDefinition(new VariableReference("sat"), new SDC.AST.TypeReference("bool")), null, null, _statements, _localVariables, new List<Attribute>());
-
-        SafeDivSorts.AddRange(_exprConverter.SafeDivUseSort);
 
         return methodDef;
     }
