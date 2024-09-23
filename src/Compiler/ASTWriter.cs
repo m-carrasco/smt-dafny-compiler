@@ -32,6 +32,8 @@ public class ASTWriter
                 return ">";
             case Operator.GreaterEq:
                 return ">=";
+            case Operator.Less:
+                return "<";
             case Operator.Division:
                 return "/";
             case Operator.Mod:
