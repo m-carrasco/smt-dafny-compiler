@@ -133,6 +133,7 @@ public enum Operator
 {
     Greater,
     GreaterEq,
+    Less,
     LessEq,
     Equal,
     NotEqual,

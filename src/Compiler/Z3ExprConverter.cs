@@ -96,15 +96,17 @@ public class Z3ExprConverter
             {
                 switch (z3Expr.FuncDecl.DeclKind)
                 {
-                    case Z3_decl_kind.Z3_OP_UGEQ:
                     case Z3_decl_kind.Z3_OP_EQ:
+                    case Z3_decl_kind.Z3_OP_UGEQ:
                     case Z3_decl_kind.Z3_OP_UGT:
+                    case Z3_decl_kind.Z3_OP_ULT:
                         {
                             var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
                             {
                                 [Z3_decl_kind.Z3_OP_UGEQ] = Operator.GreaterEq,
                                 [Z3_decl_kind.Z3_OP_EQ] = Operator.Equal,
                                 [Z3_decl_kind.Z3_OP_UGT] = Operator.Greater,
+                                [Z3_decl_kind.Z3_OP_ULT] = Operator.Less,
                             };
 
                             var a0 = _childConverter(z3Expr.Args[0]);
