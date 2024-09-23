@@ -1,13 +1,69 @@
 ﻿using System.CommandLine;
+using System.Linq;
 using Microsoft.Z3;
 using SDC.AST;
 using SDC.Converter;
-using SDC.Stubs;
 
 namespace SDC.CLI;
 
 class SDC
 {
+
+    static void DefineOperation<T>(IEnumerable<TypeReference> types, List<T> methods, List<Func<TypeReference, T>> builders)
+    {
+        foreach (var type in types)
+        {
+            foreach (var builder in builders)
+            {
+                methods.Add(builder(type));
+            }
+
+        }
+    }
+
+    static void DefinePreludeOperations(IEnumerable<TypeReference> sorts, List<MethodDefinition> methods, List<FunctionDefinition> functions)
+    {
+        DefineOperation(sorts, methods, PreludeOperations.MethodBuilders);
+        DefineOperation(sorts, functions, PreludeOperations.FunctionBuilders);
+    }
+
+    static MethodDefinition DefineSpecMethod(BoolExpr[] methodConstraints, ISet<TypeReference> preludeTypes)
+    {
+        MethodConverter m = new MethodConverter();
+        MethodDefinition methodDef = m.Convert("Constraints", methodConstraints, preludeTypes);
+
+        if (methodDef.ResultParameter == null)
+        {
+            throw new Exception("Missing result parameter");
+        }
+
+        return methodDef;
+    }
+
+    static FunctionDefinition DefineSpec(BoolExpr[] functionConstraints, ISet<TypeReference> preludeTypes)
+    {
+        FunctionConverter f = new FunctionConverter();
+        FunctionDefinition functionDef = f.Convert("Spec", functionConstraints, preludeTypes);
+        return functionDef;
+    }
+
+    static void WriteMainToDisk(Program program, MethodDefinition methodDef, DirectoryInfo outputDir, string fileName)
+    {
+        MainGenerator mainGenerator = new MainGenerator();
+        mainGenerator.GenerateMain(program, methodDef);
+
+        outputDir.Create();
+        File.WriteAllText(Path.Join(new string[] { outputDir.FullName, fileName }), ASTWriter.Serialize(program));
+    }
+
+    static Expression BuildPointwiseEq(MethodDefinition impl, FunctionDefinition spec)
+    {
+        IdentifierExpression functionIdExpr = new IdentifierExpression(spec.Identifier);
+        List<Expression> freeVariables = impl.Parameters.Select(p => p.Variable.ToExpression()).Cast<Expression>().ToList();
+        Expression methodResultVarExpr = impl.ResultParameter.Variable.ToExpression();
+        return new BinaryExpression(new CallExpression(functionIdExpr, freeVariables), Operator.Equal, methodResultVarExpr);
+    }
+
     static void CompilePointwise(FileInfo inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
     {
         string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
@@ -16,37 +72,49 @@ class SDC
         using (Context ctx = new Context())
         {
             BoolExpr[] methodConstraints = ctx.ParseSMTLIB2String(smt2MethodContent, null, null, null, null);
-            MethodConverter m = new MethodConverter();
-            string methodName = "Constraints";
-            var methodDef = m.Convert(methodName, methodConstraints);
-
-            if (methodDef.ResultParameter == null)
-            {
-                throw new Exception("Missing result parameter");
-            }
-
-            List<MethodDefinition> methods = m.SafeDivSorts.Select(s => SafeDiv.GetSafeDivMethodCode(s)).ToList();
+            List<MethodDefinition> methods = new();
+            HashSet<TypeReference> preludeTypes = new();
+            MethodDefinition methodDef = DefineSpecMethod(methodConstraints, preludeTypes);
             methods.Add(methodDef);
 
-            FunctionConverter f = new FunctionConverter();
-            string functionName = "Spec";
+            List<FunctionDefinition> functions = new();
             BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
-            var functionDef = f.Convert(functionName, functionConstraints);
-
-            List<FunctionDefinition> functions = f.SafeDivSorts.Select(s => SafeDiv.GetSafeDivFunctionCode(s)).ToList();
+            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
             functions.Add(functionDef);
 
-            List<Expression> ensureParams = methodDef.Parameters.Select(p => p.Variable.ToExpression()).Cast<Expression>().ToList();
+            methodDef.Ensures = BuildPointwiseEq(methodDef, functionDef);
 
-            methodDef.Ensures = new BinaryExpression(new CallExpression(new IdentifierExpression(functionDef.Identifier), ensureParams), Operator.Equal, methodDef.ResultParameter.Variable.ToExpression());
+            DefinePreludeOperations(preludeTypes, methods, functions);
+
             Program program = new Program(new List<Import>(), functions, methods);
 
-            MainGenerator mainGenerator = new MainGenerator();
-            mainGenerator.GenerateMain(program, methodDef);
-
-            outputDir.Create();
-            File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "compiled.dfy" }), ASTWriter.Serialize(program));
+            WriteMainToDisk(program, methodDef, outputDir, "compiled.dfy");
         }
+    }
+
+    static FunctionDefinition DefineModelSpec(BoolExpr[] modelConstraints, List<Expression> freeVariables, out Expression modelSatExpr)
+    {
+        FunctionConverter requireFunction = new FunctionConverter();
+        FunctionDefinition modelDef = requireFunction.Convert("Model", modelConstraints, new HashSet<TypeReference>());
+        modelSatExpr = new BinaryExpression(new CallExpression(new IdentifierExpression(modelDef.Identifier), freeVariables), Operator.Equal, LiteralExpression.True);
+        return modelDef;
+    }
+
+    static Expression EvalModel(Context ctx, BoolExpr[] modelConstraints, BoolExpr[] methodConstraints)
+    {
+        Solver solver = ctx.MkSolver();
+        solver.Assert(modelConstraints);
+        solver.Check();
+
+        Microsoft.Z3.Expr satValue = solver.Model.Eval(ctx.MkAnd(methodConstraints), false);
+        bool isConstantValue = satValue.IsFalse || satValue.IsTrue;
+        if (!isConstantValue)
+        {
+            throw new Exception("The input model model does not instantiate the input constraints.");
+        }
+
+        Expression expectedValue = satValue.IsFalse ? LiteralExpression.False : LiteralExpression.True;
+        return expectedValue;
     }
 
     static void CompileModel(FileInfo inputSMTModel, FileInfo? inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
@@ -58,64 +126,36 @@ class SDC
         using (Context ctx = new Context())
         {
             BoolExpr[] methodConstraints = ctx.ParseSMTLIB2String(smt2MethodContent, null, null, null, null);
-            MethodConverter m = new MethodConverter();
-            string methodName = "Constraints";
-            var methodDef = m.Convert(methodName, methodConstraints);
-
-            if (methodDef.ResultParameter == null)
-            {
-                throw new Exception("Missing result parameter");
-            }
-
-            List<MethodDefinition> methods = m.SafeDivSorts.Select(s => SafeDiv.GetSafeDivMethodCode(s)).ToList();
+            List<MethodDefinition> methods = new();
+            HashSet<TypeReference> preludeTypes = new();
+            MethodDefinition methodDef = DefineSpecMethod(methodConstraints, preludeTypes);
             methods.Add(methodDef);
 
             List<Expression> freeVariables = methodDef.Parameters.Select(p => p.Variable.ToExpression()).Cast<Expression>().ToList();
-            List<FunctionDefinition> functions = new List<FunctionDefinition>();
+            List<FunctionDefinition> functions = new();
             if (smt2FunctionContent != null)
             {
-                FunctionConverter f = new FunctionConverter();
-                string functionName = "Spec";
                 BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
-                var functionDef = f.Convert(functionName, functionConstraints);
-
-                functions.AddRange(f.SafeDivSorts.Select(s => SafeDiv.GetSafeDivFunctionCode(s)));
+                FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
                 functions.Add(functionDef);
-
-
-                methodDef.Ensures = new BinaryExpression(new CallExpression(new IdentifierExpression(functionDef.Identifier), freeVariables), Operator.Equal, methodDef.ResultParameter.Variable.ToExpression());
+                methodDef.Ensures = BuildPointwiseEq(methodDef, functionDef);
             }
 
-            FunctionConverter requireFunction = new FunctionConverter();
             BoolExpr[] modelConstraints = ctx.ParseSMTLIB2String(smt2ModelContent, null, null, null, null);
-            var modelDef = requireFunction.Convert("Model", modelConstraints);
+            FunctionDefinition modelDef = DefineModelSpec(modelConstraints, freeVariables, out Expression modelSatExpr);
             functions.Add(modelDef);
-            methodDef.Requires = new BinaryExpression(new CallExpression(new IdentifierExpression(modelDef.Identifier), freeVariables), Operator.Equal, LiteralExpression.True);
+            methodDef.Requires = modelSatExpr;
 
-            // Retrieve the SAT value for the given model and constraints.
-            Solver solver = ctx.MkSolver();
-            solver.Assert(modelConstraints);
-            solver.Check();
+            Expression expectedValue = EvalModel(ctx, modelConstraints, methodConstraints);
 
-            Microsoft.Z3.Expr satValue = solver.Model.Eval(ctx.MkAnd(methodConstraints), false);
-            bool isConstantValue = satValue.IsFalse || satValue.IsTrue;
-            if (!isConstantValue)
-            {
-                throw new Exception("The input model model does not instantiate the input constraints.");
-            }
-
-            Expression expectedValue = satValue.IsFalse ? LiteralExpression.False : LiteralExpression.True;
             // Verify that the result matches the model's evaluation.
             Expression expectedValueEquality = new BinaryExpression(methodDef.ResultParameter.Variable.ToExpression(), Operator.Equal, expectedValue);
             methodDef.Ensures = methodDef.Ensures != null ? new BinaryExpression(methodDef.Ensures, Operator.And, expectedValueEquality) : expectedValueEquality;
 
+            DefinePreludeOperations(preludeTypes, methods, functions);
+
             Program program = new Program(new List<Import>(), functions, methods);
-
-            MainGenerator mainGenerator = new MainGenerator();
-            mainGenerator.GenerateMain(program, methodDef);
-
-            outputDir.Create();
-            File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "compiled.dfy" }), ASTWriter.Serialize(program));
+            WriteMainToDisk(program, methodDef, outputDir, "compiled.dfy");
         }
     }
 

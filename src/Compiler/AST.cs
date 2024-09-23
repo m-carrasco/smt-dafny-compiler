@@ -89,6 +89,18 @@ public class TypeReference : IIdentifier, IASTVisitable
     {
         return _identifier.StartsWith("bv");
     }
+
+    public int GetBVSize()
+    {
+        if (IsBVType())
+        {
+            int bits = int.Parse(this.Identifier.Substring(2));
+            return bits;
+        }
+
+        throw new ArgumentException("BV type expected");
+    }
+
 };
 
 public class VariableReference : IIdentifier, IASTVisitable
@@ -129,10 +141,12 @@ public enum Operator
     BitwiseOr,
     BitwiseAnd,
     BitwiseNot,
+    BitwiseXor,
     Mod,
     Add,
     Multiply,
-    Shl
+    Shl,
+    Shr,
 };
 
 public class FieldAccessExpression : Expression, IASTVisitable

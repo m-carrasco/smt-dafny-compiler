@@ -38,21 +38,25 @@ public class Z3ExprConverter
 
     IDictionary<uint, Expression> _conversionCache = new Dictionary<uint, Expression>();
 
-    public List<TypeReference> SafeDivUseSort = new List<TypeReference>();
     public List<VariableDefinition> Parameters = new List<VariableDefinition>();
 
-    private Z3ExprConverter(ConversionKind conversionKind)
+    // The prelude has to be instantiated according to the types that have been detected.
+    // This container stores such types.
+    private ISet<TypeReference> _preludeTypes;
+
+    private Z3ExprConverter(ConversionKind conversionKind, ISet<TypeReference> preludeTypes)
     {
         _kind = conversionKind;
+        _preludeTypes = preludeTypes;
     }
 
     /*
         The function translation does not use local variables for intermediate results.
         In this mode, we use the same dafny expression for each Z3 expression on each occurrence. 
     */
-    public static Z3ExprConverter CreateFunctionConverter()
+    public static Z3ExprConverter CreateFunctionConverter(ISet<TypeReference> preludeTypes)
     {
-        var r = new Z3ExprConverter(ConversionKind.Function);
+        var r = new Z3ExprConverter(ConversionKind.Function, preludeTypes);
         r._childConverter = (e) => r.Convert(e);
         return r;
     }
@@ -62,9 +66,9 @@ public class Z3ExprConverter
         The childLookup returns the variable names.
         The caller must ensure that the child are processed first.
     */
-    public static Z3ExprConverter CreateMethodConverter(Func<Microsoft.Z3.Expr, Expression> childLookup)
+    public static Z3ExprConverter CreateMethodConverter(Func<Microsoft.Z3.Expr, Expression> childLookup, ISet<TypeReference> preludeTypes)
     {
-        var r = new Z3ExprConverter(ConversionKind.Method);
+        var r = new Z3ExprConverter(ConversionKind.Method, preludeTypes);
         r._childConverter = childLookup;
         return r;
     }
@@ -201,14 +205,26 @@ public class Z3ExprConverter
                             if (_useSafeDiv)
                             {
                                 var t = Z3SortToDafny(z3Expr.Sort);
-                                var _safeDivIdentifier = _kind == ConversionKind.Method ? SafeDiv.GetSafeDivMethodIdentifier(t) : SafeDiv.GetSafeDivFunctionIdentifier(t);
+                                var _safeDivIdentifier = _kind == ConversionKind.Method ? SafeUnsignedDiv.GetSafeDivMethodIdentifier(t) : SafeUnsignedDiv.GetSafeDivFunctionIdentifier(t);
                                 dafnyExpr = new SDC.AST.CallExpression(_safeDivIdentifier, new List<Expression>() { a0, a1 });
-                                SafeDivUseSort.Add(Z3SortToDafny(z3Expr.Sort));
+                                // Instantiate the necessary operations in the prelude for this type.
+                                _preludeTypes.Add(Z3SortToDafny(z3Expr.Sort));
                             }
                             else
                             {
                                 dafnyExpr = new SDC.AST.BinaryExpression(a0, Operator.Division, a1);
                             }
+                        }
+                        break;
+                    case Z3_decl_kind.Z3_OP_BSDIV:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+                            var t = Z3SortToDafny(z3Expr.Sort);
+                            var _safeDivIdentifier = _kind == ConversionKind.Method ? SafeSignedDiv.GetSafeDivMethodIdentifier(t) : SafeSignedDiv.GetSafeDivFunctionIdentifier(t);
+                            dafnyExpr = new SDC.AST.CallExpression(_safeDivIdentifier, new List<Expression>() { a0, a1 });
+                            // Instantiate the necessary operations in the prelude for this type.
+                            _preludeTypes.Add(Z3SortToDafny(z3Expr.Sort));
                         }
                         break;
                     case Z3_decl_kind.Z3_OP_UNINTERPRETED:
