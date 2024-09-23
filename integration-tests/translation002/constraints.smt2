@@ -1,11 +1,11 @@
 ; RUN: %SDC compile pointwise --output-dir %T-out/ --input-smt2-function %s --input-smt2-method %s 
 ; RUN: %dafny build --allow-warnings --standard-libraries %T-out/compiled.dfy -o %t.build/constraints.cs | %FileCheck --check-prefix=CHECK-BUILD %s
 
-; RUN %model-packer %s %t.packed.sat
-; RUN %t.build/constraints %t.packed.sat | %FileCheck --check-prefix=CHECK-SAT %s
+; RUN: %model-packer %s %t.packed.sat
+; RUN: %t.build/constraints %t.packed.sat | %FileCheck --check-prefix=CHECK-SAT %s
 
-; RUN %model-packer --negate %s %t.packed.unsat
-; RUN %t.build/constraints %t.packed.unsat | %FileCheck --check-prefix=CHECK-UNSAT %s
+; RUN: %model-packer --negate %s %t.packed.unsat
+; RUN: %t.build/constraints %t.packed.unsat | %FileCheck --check-prefix=CHECK-UNSAT %s
 
 ; Test with pathological cases
 
