@@ -88,14 +88,14 @@ public class Z3ExprConverter
         LiteralExpression signMask = new LiteralExpression(((int)Math.Pow(2, n - 1)).ToString());
         Expression bIsNonNegative = new BinaryExpression(b, Operator.Less, signMask);
 
-        Expression aNegBNonNeg = new BinaryExpression(aIsNegative, Operator.And, bIsNonNegative);
+        Expression aNegBNonNeg = new BinaryExpression(aIsNegative, Operator.BooleanAnd, bIsNonNegative);
 
         Expression xor = Expression.BooleanXor(new BinaryExpression(a, Operator.Less, signMask), new BinaryExpression(b, Operator.Less, signMask));
         Expression bothSameSign = new UnaryExpression(xor, Operator.BooleanNegation);
         Expression compareUnsigned = new BinaryExpression(a, Operator.Less, b);
-        Expression bothSignUnsignedCmp = new BinaryExpression(bothSameSign, Operator.And, compareUnsigned);
+        Expression bothSignUnsignedCmp = new BinaryExpression(bothSameSign, Operator.BooleanAnd, compareUnsigned);
 
-        return new BinaryExpression(aNegBNonNeg, Operator.Or, bothSignUnsignedCmp);
+        return new BinaryExpression(aNegBNonNeg, Operator.BooleanOr, bothSignUnsignedCmp);
     }
 
     /*
@@ -181,10 +181,10 @@ public class Z3ExprConverter
                             {
                                 throw new NotSupportedException("AND expression has less than two sub-expressions");
                             }
-                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], SDC.AST.Operator.And, child[1]);
+                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], SDC.AST.Operator.BooleanAnd, child[1]);
                             for (int i = 2; i < child.Count; i++)
                             {
-                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, SDC.AST.Operator.And, child[i]);
+                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, SDC.AST.Operator.BooleanAnd, child[i]);
                             }
                             break;
                         }

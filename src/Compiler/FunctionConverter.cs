@@ -18,7 +18,7 @@ public class FunctionConverter
         Expression expression = expressions.ElementAt(0);
         for (int i = 1; i < expressions.Count(); i++)
         {
-            expression = new BinaryExpression(expression, Operator.And, expressions.ElementAt(i));
+            expression = new BinaryExpression(expression, Operator.BooleanAnd, expressions.ElementAt(i));
         }
 
         var functionDef = new SDC.AST.FunctionDefinition(name, _parameters, new SDC.AST.TypeReference("bool"), expression);

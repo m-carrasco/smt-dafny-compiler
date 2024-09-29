@@ -38,9 +38,9 @@ public class ASTWriter
                 return "/";
             case Operator.Mod:
                 return "%";
-            case Operator.And:
+            case Operator.BooleanAnd:
                 return "&&";
-            case Operator.Or:
+            case Operator.BooleanOr:
                 return "||";
             case Operator.BooleanNegation:
                 return "!";

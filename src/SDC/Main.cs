@@ -150,7 +150,7 @@ class SDC
 
             // Verify that the result matches the model's evaluation.
             Expression expectedValueEquality = new BinaryExpression(methodDef.ResultParameter.Variable.ToExpression(), Operator.Equal, expectedValue);
-            methodDef.Ensures = methodDef.Ensures != null ? new BinaryExpression(methodDef.Ensures, Operator.And, expectedValueEquality) : expectedValueEquality;
+            methodDef.Ensures = methodDef.Ensures != null ? new BinaryExpression(methodDef.Ensures, Operator.BooleanAnd, expectedValueEquality) : expectedValueEquality;
 
             DefinePreludeOperations(preludeTypes, methods, functions);
 
