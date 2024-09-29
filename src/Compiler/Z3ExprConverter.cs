@@ -125,10 +125,12 @@ public class Z3ExprConverter
                     case Z3_decl_kind.Z3_OP_UGEQ:
                     case Z3_decl_kind.Z3_OP_UGT:
                     case Z3_decl_kind.Z3_OP_ULT:
+                    case Z3_decl_kind.Z3_OP_ULEQ:
                         {
                             var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
                             {
                                 [Z3_decl_kind.Z3_OP_UGEQ] = Operator.GreaterEq,
+                                [Z3_decl_kind.Z3_OP_ULEQ] = Operator.LessEq,
                                 [Z3_decl_kind.Z3_OP_EQ] = Operator.Equal,
                                 [Z3_decl_kind.Z3_OP_UGT] = Operator.Greater,
                                 [Z3_decl_kind.Z3_OP_ULT] = Operator.Less,
