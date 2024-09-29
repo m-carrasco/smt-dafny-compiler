@@ -131,7 +131,7 @@ public abstract class Expression : IASTVisitable
     public static Expression BooleanXor(Expression a, Expression b)
     {
         //A XOR B= (A∨B) ∧ ¬(A∧B)
-        return new BinaryExpression(new BinaryExpression(a, Operator.Or, b), Operator.And, new UnaryExpression(new BinaryExpression(a, Operator.And, b), Operator.BooleanNegation));
+        return new BinaryExpression(new BinaryExpression(a, Operator.BooleanOr, b), Operator.BooleanAnd, new UnaryExpression(new BinaryExpression(a, Operator.BooleanAnd, b), Operator.BooleanNegation));
     }
 };
 
@@ -144,8 +144,8 @@ public enum Operator
     Equal,
     NotEqual,
     Division,
-    And,
-    Or,
+    BooleanAnd,
+    BooleanOr,
     BooleanNegation,
     BitwiseOr,
     BitwiseAnd,
