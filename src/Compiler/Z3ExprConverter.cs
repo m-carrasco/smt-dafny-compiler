@@ -146,6 +146,13 @@ public class Z3ExprConverter
                             dafnyExpr = Slt(((BitVecExpr)z3Expr.Args[0]).SortSize, a0, a1);
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_SLEQ:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+                            dafnyExpr = new UnaryExpression(Slt(((BitVecExpr)z3Expr.Args[0]).SortSize, a1, a0), Operator.BooleanNegation);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_UNINTERPRETED:
                         {
                             if (z3Expr.IsConst && z3Expr.NumArgs == 0)
