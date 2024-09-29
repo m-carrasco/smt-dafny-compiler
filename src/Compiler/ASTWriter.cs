@@ -40,6 +40,10 @@ public class ASTWriter
                 return "%";
             case Operator.And:
                 return "&&";
+            case Operator.Or:
+                return "||";
+            case Operator.BooleanNegation:
+                return "!";
             case Operator.BitwiseOr:
                 return "|";
             case Operator.BitwiseAnd:
