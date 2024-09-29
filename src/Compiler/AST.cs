@@ -127,6 +127,12 @@ public class VariableReference : IIdentifier, IASTVisitable
 public abstract class Expression : IASTVisitable
 {
     public abstract void Accept(IASTVisitor visitor);
+
+    public static Expression BooleanXor(Expression a, Expression b)
+    {
+        //A XOR B= (A∨B) ∧ ¬(A∧B)
+        return new BinaryExpression(new BinaryExpression(a, Operator.Or, b), Operator.And, new UnaryExpression(new BinaryExpression(a, Operator.And, b), Operator.BooleanNegation));
+    }
 };
 
 public enum Operator
@@ -139,6 +145,8 @@ public enum Operator
     NotEqual,
     Division,
     And,
+    Or,
+    BooleanNegation,
     BitwiseOr,
     BitwiseAnd,
     BitwiseNot,

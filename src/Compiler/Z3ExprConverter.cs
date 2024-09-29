@@ -73,6 +73,31 @@ public class Z3ExprConverter
         return r;
     }
 
+    private Expression Slt(uint sortSize, Expression a, Expression b)
+    {
+        // (define-fun slt ((a (_ BitVec 8)) (b (_ BitVec 8))) Bool
+        // (or
+        //    (and (bvult #x7f a) (bvult b #x80))  ;; a is negative and b is non-negative
+        //    (and 
+        //        (not (xor (bvult a #x80) (bvult b #x80)))  ;; a and b have the same sign
+        //        (bvult a b))))  ;; compare unsigned if same sign)
+
+        uint n = sortSize;
+
+        Expression aIsNegative = new BinaryExpression(new LiteralExpression((n - 1).ToString()), Operator.Less, a);
+        LiteralExpression signMask = new LiteralExpression(((int)Math.Pow(2, n - 1)).ToString());
+        Expression bIsNonNegative = new BinaryExpression(b, Operator.Less, signMask);
+
+        Expression aNegBNonNeg = new BinaryExpression(aIsNegative, Operator.And, bIsNonNegative);
+
+        Expression xor = Expression.BooleanXor(new BinaryExpression(a, Operator.Less, signMask), new BinaryExpression(b, Operator.Less, signMask));
+        Expression bothSameSign = new UnaryExpression(xor, Operator.BooleanNegation);
+        Expression compareUnsigned = new BinaryExpression(a, Operator.Less, b);
+        Expression bothSignUnsignedCmp = new BinaryExpression(bothSameSign, Operator.And, compareUnsigned);
+
+        return new BinaryExpression(aNegBNonNeg, Operator.Or, bothSignUnsignedCmp);
+    }
+
     /*
         The function returns a Dafny expression from a Z3 expression.
         In addition, it updates public containers holding the free variables found, etc.
@@ -114,6 +139,13 @@ public class Z3ExprConverter
                             dafnyExpr = new SDC.AST.BinaryExpression(a0, operators[z3Expr.FuncDecl.DeclKind], a1);
                         }
                         break;
+                    case Z3_decl_kind.Z3_OP_SLT:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+                            dafnyExpr = Slt(((BitVecExpr)z3Expr.Args[0]).SortSize, a0, a1);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_UNINTERPRETED:
                         {
                             if (z3Expr.IsConst && z3Expr.NumArgs == 0)
@@ -169,7 +201,8 @@ public class Z3ExprConverter
         {
             if (z3Expr.IsApp)
             {
-                switch (z3Expr.FuncDecl.DeclKind)
+                var declKind = z3Expr.FuncDecl.DeclKind;
+                switch (declKind)
                 {
                     case Z3_decl_kind.Z3_OP_BNOT:
                         {
@@ -191,13 +224,20 @@ public class Z3ExprConverter
                             break;
                         }
                     case Z3_decl_kind.Z3_OP_BAND: // Cast operands to bv (in case they are constants)
+                    case Z3_decl_kind.Z3_OP_BXOR:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
                             var a1 = _childConverter(z3Expr.Args[1]);
 
                             var t = Z3SortToDafny(z3Expr.Sort);
 
-                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), Operator.BitwiseAnd, new SDC.AST.AsExpression(a1, t));
+                            var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
+                            {
+                                [Z3_decl_kind.Z3_OP_BAND] = Operator.BitwiseAnd,
+                                [Z3_decl_kind.Z3_OP_BXOR] = Operator.BitwiseXor,
+                            };
+
+                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), operators[declKind], new SDC.AST.AsExpression(a1, t));
                             break;
                         }
                     case Z3_decl_kind.Z3_OP_BUDIV:
