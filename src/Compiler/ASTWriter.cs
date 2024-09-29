@@ -34,6 +34,8 @@ public class ASTWriter
                 return ">=";
             case Operator.Less:
                 return "<";
+            case Operator.LessEq:
+                return "<=";
             case Operator.Division:
                 return "/";
             case Operator.Mod:
