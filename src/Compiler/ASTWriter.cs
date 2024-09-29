@@ -54,6 +54,8 @@ public class ASTWriter
                 return "!";
             case Operator.BitwiseXor:
                 return "^";
+            case Operator.BitwiseNeg:
+                return "-";
             case Operator.Add:
                 return "+";
             case Operator.Multiply:

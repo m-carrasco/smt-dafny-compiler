@@ -228,9 +228,17 @@ public class Z3ExprConverter
                 switch (declKind)
                 {
                     case Z3_decl_kind.Z3_OP_BNOT:
+                    case Z3_decl_kind.Z3_OP_BNEG:
                         {
+
+                            var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
+                            {
+                                [Z3_decl_kind.Z3_OP_BNOT] = Operator.BitwiseNot,
+                                [Z3_decl_kind.Z3_OP_BNEG] = Operator.BitwiseNeg,
+                            };
+
                             var a0 = _childConverter(z3Expr.Args[0]);
-                            dafnyExpr = new SDC.AST.UnaryExpression(new SDC.AST.AsExpression(a0, Z3SortToDafny(z3Expr.Sort)), Operator.BitwiseNot);
+                            dafnyExpr = new SDC.AST.UnaryExpression(new SDC.AST.AsExpression(a0, Z3SortToDafny(z3Expr.Sort)), operators[declKind]);
                             break;
                         }
                     case Z3_decl_kind.Z3_OP_BSMOD:
