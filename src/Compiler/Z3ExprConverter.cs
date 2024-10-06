@@ -241,16 +241,16 @@ public class Z3ExprConverter
                             dafnyExpr = new SDC.AST.UnaryExpression(new SDC.AST.AsExpression(a0, Z3SortToDafny(z3Expr.Sort)), operators[declKind]);
                             break;
                         }
-                    case Z3_decl_kind.Z3_OP_BSMOD:
+                    case Z3_decl_kind.Z3_OP_BUREM:
                         {
                             // Cast operands to ints because bvs do not have this operator in Dafny.
                             // The result must be casted back to a bv.
 
-                            var a0 = _childConverter(z3Expr.Args[0]);
-                            var a1 = _childConverter(z3Expr.Args[1]);
-
                             var t = new TypeReference("int");
-                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), Operator.Mod, new SDC.AST.AsExpression(a1, t));
+                            var a0 = new SDC.AST.AsExpression(_childConverter(z3Expr.Args[0]), t);
+                            var a1 = new SDC.AST.AsExpression(_childConverter(z3Expr.Args[1]), t);
+                            dafnyExpr = new SDC.AST.BinaryExpression(a0, Operator.Mod, a1);
+                            dafnyExpr = new MathIfThenElse(new SDC.AST.BinaryExpression(a1, Operator.Equal, LiteralExpression.Zero), a0, dafnyExpr);
                             dafnyExpr = new SDC.AST.AsExpression(dafnyExpr, Z3SortToDafny(z3Expr.Sort));
                             break;
                         }
