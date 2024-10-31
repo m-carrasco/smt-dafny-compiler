@@ -257,6 +257,7 @@ public class Z3ExprConverter
                     case Z3_decl_kind.Z3_OP_BAND: // Cast operands to bv (in case they are constants)
                     case Z3_decl_kind.Z3_OP_BXOR:
                     case Z3_decl_kind.Z3_OP_BADD:
+                    case Z3_decl_kind.Z3_OP_BMUL:
                     case Z3_decl_kind.Z3_OP_BOR:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
@@ -270,6 +271,7 @@ public class Z3ExprConverter
                                 [Z3_decl_kind.Z3_OP_BOR] = Operator.BitwiseOr,
                                 [Z3_decl_kind.Z3_OP_BXOR] = Operator.BitwiseXor,
                                 [Z3_decl_kind.Z3_OP_BADD] = Operator.Add,
+                                [Z3_decl_kind.Z3_OP_BMUL] = Operator.Multiply,
                             };
 
                             dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), operators[declKind], new SDC.AST.AsExpression(a1, t));
