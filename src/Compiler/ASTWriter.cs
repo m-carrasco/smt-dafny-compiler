@@ -58,6 +58,8 @@ public class ASTWriter
                 return "-";
             case Operator.Add:
                 return "+";
+            case Operator.Minus:
+                return "-";
             case Operator.Multiply:
                 return "*";
             case Operator.Shl:
