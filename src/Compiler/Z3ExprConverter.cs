@@ -257,6 +257,7 @@ public class Z3ExprConverter
                     case Z3_decl_kind.Z3_OP_BAND: // Cast operands to bv (in case they are constants)
                     case Z3_decl_kind.Z3_OP_BXOR:
                     case Z3_decl_kind.Z3_OP_BADD:
+                    case Z3_decl_kind.Z3_OP_BOR:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
                             var a1 = _childConverter(z3Expr.Args[1]);
@@ -266,6 +267,7 @@ public class Z3ExprConverter
                             var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
                             {
                                 [Z3_decl_kind.Z3_OP_BAND] = Operator.BitwiseAnd,
+                                [Z3_decl_kind.Z3_OP_BOR] = Operator.BitwiseOr,
                                 [Z3_decl_kind.Z3_OP_BXOR] = Operator.BitwiseXor,
                                 [Z3_decl_kind.Z3_OP_BADD] = Operator.Add,
                             };
