@@ -211,6 +211,13 @@ public class Z3ExprConverter
                             }
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_NOT:
+                        {
+                            var condition = _childConverter(z3Expr.Args[0]);
+
+                            dafnyExpr = new MathIfThenElse(condition, LiteralExpression.False, LiteralExpression.True);
+                            break;
+                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind} {z3Expr.ToString()}");
                 }
