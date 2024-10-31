@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Z3;
 using SDC.AST;
 using SDC.Converter;
+using SDC.PreProcessingPass;
 
 namespace SDC.CLI;
 
@@ -64,6 +65,14 @@ class SDC
         return new BinaryExpression(new CallExpression(functionIdExpr, freeVariables), Operator.Equal, methodResultVarExpr);
     }
 
+    static void ApplyPreprocessingPasses(in BoolExpr[] constraints)
+    {
+        for (var i = 0; i < constraints.Length; i++)
+        {
+            constraints[i] = (BoolExpr)PreprocessingPasses.Preprocess(constraints[i]);
+        }
+    }
+
     static void CompilePointwise(FileInfo inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
     {
         string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
@@ -72,6 +81,7 @@ class SDC
         using (Context ctx = new Context())
         {
             BoolExpr[] methodConstraints = ctx.ParseSMTLIB2String(smt2MethodContent, null, null, null, null);
+            ApplyPreprocessingPasses(methodConstraints);
             List<MethodDefinition> methods = new();
             HashSet<TypeReference> preludeTypes = new();
             MethodDefinition methodDef = DefineSpecMethod(methodConstraints, preludeTypes);
@@ -79,6 +89,7 @@ class SDC
 
             List<FunctionDefinition> functions = new();
             BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
+            ApplyPreprocessingPasses(functionConstraints);
             FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
             functions.Add(functionDef);
 
@@ -126,6 +137,7 @@ class SDC
         using (Context ctx = new Context())
         {
             BoolExpr[] methodConstraints = ctx.ParseSMTLIB2String(smt2MethodContent, null, null, null, null);
+            ApplyPreprocessingPasses(methodConstraints);
             List<MethodDefinition> methods = new();
             HashSet<TypeReference> preludeTypes = new();
             MethodDefinition methodDef = DefineSpecMethod(methodConstraints, preludeTypes);
@@ -136,12 +148,14 @@ class SDC
             if (smt2FunctionContent != null)
             {
                 BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
+                ApplyPreprocessingPasses(functionConstraints);
                 FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
                 functions.Add(functionDef);
                 methodDef.Ensures = BuildPointwiseEq(methodDef, functionDef);
             }
 
             BoolExpr[] modelConstraints = ctx.ParseSMTLIB2String(smt2ModelContent, null, null, null, null);
+            ApplyPreprocessingPasses(methodConstraints);
             FunctionDefinition modelDef = DefineModelSpec(modelConstraints, freeVariables, out Expression modelSatExpr);
             functions.Add(modelDef);
             methodDef.Requires = modelSatExpr;
