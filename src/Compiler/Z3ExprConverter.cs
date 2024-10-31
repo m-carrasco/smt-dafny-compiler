@@ -312,6 +312,15 @@ public class Z3ExprConverter
                             }
                             throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
                         }
+                    case Z3_decl_kind.Z3_OP_ITE:
+                        {
+                            var condExpr = _childConverter(z3Expr.Args[0]);
+                            var trueExpr = _childConverter(z3Expr.Args[1]);
+                            var falseExpr = _childConverter(z3Expr.Args[1]);
+
+                            dafnyExpr = new MathIfThenElse(condExpr, trueExpr, falseExpr);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_EXTRACT:
                         {
                             //Our translation follows this:
