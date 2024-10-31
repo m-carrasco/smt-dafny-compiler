@@ -153,6 +153,7 @@ public enum Operator
     BitwiseXor,
     BitwiseNeg,
     Mod,
+    Minus,
     Add,
     Multiply,
     Shl,

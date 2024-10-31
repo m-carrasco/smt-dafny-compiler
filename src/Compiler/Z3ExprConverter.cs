@@ -310,6 +310,33 @@ public class Z3ExprConverter
                             }
                             throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
                         }
+                    case Z3_decl_kind.Z3_OP_EXTRACT:
+                        {
+                            //Our translation follows this:
+                            //method Extract(x: bv32, i: int, j: int) returns (res: bv3)
+                            //{
+                            //  var mask : bv32;
+                            //  mask := ( (1 as bv32) << (i - j + 1)) - 1;  // Mask to isolate the relevant bits
+                            //  res := (((x >> j) & (mask as bv32)) as int) as bv3;             // Shift and mask to extract the bits
+                            //}
+
+                            var high = new LiteralExpression(z3Expr.FuncDecl.Parameters[0].Int.ToString());
+                            var low = new LiteralExpression(z3Expr.FuncDecl.Parameters[1].Int.ToString());
+                            var targetBVSort = Z3SortToDafny(z3Expr.Args[0].Sort);
+                            var targetBV = _childConverter(z3Expr.Args[0]);
+
+                            var shiftLHS = new AsExpression(LiteralExpression.One, targetBVSort);
+                            var shiftRHS = new BinaryExpression(new BinaryExpression(high, Operator.Minus, low), Operator.Add, LiteralExpression.One);
+                            var shift = new BinaryExpression(shiftLHS, Operator.Shl, shiftRHS);
+                            var mask = new BinaryExpression(shift, Operator.Minus, LiteralExpression.One);
+
+                            Expression extract = new BinaryExpression(targetBV, Operator.Shr, low);
+                            extract = new BinaryExpression(extract, Operator.BitwiseAnd, new AsExpression(mask, targetBVSort));
+                            extract = new AsExpression(extract, new TypeReference("int"));
+                            extract = new AsExpression(extract, Z3SortToDafny(z3Expr.Sort));
+                            dafnyExpr = extract;
+                            break;
+                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
                 }
