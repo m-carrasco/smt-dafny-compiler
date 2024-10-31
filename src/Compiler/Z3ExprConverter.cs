@@ -257,6 +257,7 @@ public class Z3ExprConverter
                     case Z3_decl_kind.Z3_OP_BAND: // Cast operands to bv (in case they are constants)
                     case Z3_decl_kind.Z3_OP_BXOR:
                     case Z3_decl_kind.Z3_OP_BADD:
+                    case Z3_decl_kind.Z3_OP_BSUB:
                     case Z3_decl_kind.Z3_OP_BMUL:
                     case Z3_decl_kind.Z3_OP_BOR:
                         {
@@ -271,6 +272,7 @@ public class Z3ExprConverter
                                 [Z3_decl_kind.Z3_OP_BOR] = Operator.BitwiseOr,
                                 [Z3_decl_kind.Z3_OP_BXOR] = Operator.BitwiseXor,
                                 [Z3_decl_kind.Z3_OP_BADD] = Operator.Add,
+                                [Z3_decl_kind.Z3_OP_BSUB] = Operator.Minus,
                                 [Z3_decl_kind.Z3_OP_BMUL] = Operator.Multiply,
                             };
 
