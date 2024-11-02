@@ -161,6 +161,11 @@ public class ASTWriter
             _textWriter.WriteLine("}");
         }
 
+        public void Visit(RotateExpression e)
+        {
+            string op = e.Mode == RotateMode.LEFT ? "RotateLeft" : "RotateRight";
+            _textWriter.Write($"({Serialize(e.RotatedExpr)}).{op}({Serialize(e.RotateBits)})");
+        }
         public void Visit(FieldAccessExpression e)
         {
             _textWriter.Write($"{Serialize(e.Object)}.{e.Field.Identifier}");
