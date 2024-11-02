@@ -44,6 +44,7 @@ public interface IASTVisitor
     void Visit(ReturnStatement e);
     void Visit(PrintStatement e);
     void Visit(ExpectStatement e);
+    void Visit(RotateExpression e);
     void Visit(Import e);
     void Visit(SDC.AST.Program e);
 };
@@ -250,6 +251,32 @@ public class BinaryExpression : Expression
         LHS = lhs;
         Op = op;
         RHS = rhs;
+    }
+
+    public override void Accept(IASTVisitor visitor)
+    {
+        visitor.Visit(this);
+    }
+};
+
+public enum RotateMode
+{
+    LEFT,
+    RIGHT
+};
+
+public class RotateExpression : Expression
+{
+    public Expression RotatedExpr;
+    public Expression RotateBits;
+
+    public RotateMode Mode;
+
+    public RotateExpression(Expression rotatedExpr, Expression rotateBits, RotateMode mode)
+    {
+        RotatedExpr = rotatedExpr;
+        RotateBits = rotateBits;
+        Mode = mode;
     }
 
     public override void Accept(IASTVisitor visitor)

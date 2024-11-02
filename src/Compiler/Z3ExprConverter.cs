@@ -361,6 +361,18 @@ public class Z3ExprConverter
                             dafnyExpr = extract;
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_ROTATE_LEFT:
+                    case Z3_decl_kind.Z3_OP_ROTATE_RIGHT:
+                        {
+                            var rotateBits = new LiteralExpression(z3Expr.FuncDecl.Parameters[0].Int.ToString());
+                            var targetBV = _childConverter(z3Expr.Args[0]);
+                            var targetBVSort = Z3SortToDafny(z3Expr.Args[0].Sort);
+                            targetBV = new AsExpression(targetBV, targetBVSort);
+
+                            var mode = declKind == Z3_decl_kind.Z3_OP_ROTATE_LEFT ? RotateMode.LEFT : RotateMode.RIGHT;
+                            dafnyExpr = new RotateExpression(targetBV, rotateBits, mode);
+                            break;
+                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
                 }
