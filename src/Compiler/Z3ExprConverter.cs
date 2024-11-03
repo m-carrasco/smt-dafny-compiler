@@ -373,6 +373,12 @@ public class Z3ExprConverter
                             dafnyExpr = new RotateExpression(targetBV, rotateBits, mode);
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_CONCAT:
+                        {
+                            var totalBits = ((BitVecSort)z3Expr.Sort).Size;
+                            dafnyExpr = Concat(totalBits, new Queue<Z3Expr>(z3Expr.Args), totalBits);
+                            break;
+                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
                 }
@@ -393,5 +399,26 @@ public class Z3ExprConverter
 
         _conversionCache[z3Expr.Id] = dafnyExpr;
         return dafnyExpr;
+    }
+
+    private Expression Concat(uint totalBits, Queue<Z3Expr> expressions, uint expressionsBits)
+    {
+        var bvAZ3 = expressions.Dequeue();
+        var bvA = _childConverter(bvAZ3);
+        uint bvASize = ((BitVecSort)bvAZ3.Sort).Size;
+
+        Expression result = new AsExpression(bvA, new TypeReference($"bv{totalBits}"));
+
+        if (expressions.Count == 0)
+        {
+            return result;
+        }
+
+        uint remainingBits = expressionsBits - bvASize;
+        result = new BinaryExpression(result, Operator.Shl, new LiteralExpression(remainingBits.ToString()));
+
+        result = new BinaryExpression(result, Operator.BitwiseOr, Concat(totalBits, expressions, remainingBits));
+
+        return result;
     }
 }
