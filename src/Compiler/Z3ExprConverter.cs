@@ -379,6 +379,50 @@ public class Z3ExprConverter
                             dafnyExpr = Concat(totalBits, new Queue<Z3Expr>(z3Expr.Args), totalBits);
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_ZERO_EXT:
+                        {
+                            var totalBits = ((BitVecSort)z3Expr.Sort).Size;
+                            var childExpressionSize = ((BitVecSort)z3Expr.Args[0].Sort).Size;
+                            dafnyExpr = ZeroExtend(totalBits, childExpressionSize, _childConverter(z3Expr.Args[0]));
+                            break;
+                        }
+                    case Z3_decl_kind.Z3_OP_SIGN_EXT:
+                        {
+                            // Check the MSB of the extended expression.
+                            // If it is zero, zero extend. Otherwise, "one extend" it.
+                            // The zero/one extension is done performing a "concat".
+
+                            var childExpressionSize = ((BitVecSort)z3Expr.Args[0].Sort).Size;
+                            var childExpressionSizeType = new TypeReference($"bv{childExpressionSize}");
+
+                            var childExpr = _childConverter(z3Expr.Args[0]);
+
+                            var oneChildSize = new AsExpression(LiteralExpression.One, childExpressionSizeType);
+
+                            dafnyExpr = oneChildSize;
+
+                            if (childExpressionSize == 0)
+                            {
+                                throw new NotImplementedException();
+                            }
+
+                            var sizeMinusOne = new LiteralExpression((childExpressionSize - 1).ToString());
+
+                            dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Shl, sizeMinusOne);
+
+                            // MSB in the child expression
+                            dafnyExpr = new BinaryExpression(childExpr, Operator.BitwiseAnd, dafnyExpr);
+
+                            var zeroChildSize = new AsExpression(LiteralExpression.Zero, childExpressionSizeType);
+                            // MSB is zero
+                            dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Equal, zeroChildSize);
+
+                            var totalBits = ((BitVecSort)z3Expr.Sort).Size;
+
+                            // "zero extend" or "one extend" based on the MSB value
+                            dafnyExpr = new MathIfThenElse(dafnyExpr, ZeroExtend(totalBits, childExpressionSize, childExpr), OneExtend(totalBits, childExpressionSize, childExpr));
+                            break;
+                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
                 }
@@ -398,6 +442,38 @@ public class Z3ExprConverter
         }
 
         _conversionCache[z3Expr.Id] = dafnyExpr;
+        return dafnyExpr;
+    }
+
+    private Expression ZeroExtend(uint totalBits, uint childTotalBits, Expression childExpr)
+    {
+        var totalBitsType = new TypeReference($"bv{totalBits}");
+        var childExpression = new AsExpression(childExpr, totalBitsType);
+
+        Expression dafnyExpr = LiteralExpression.Zero;
+        dafnyExpr = new AsExpression(dafnyExpr, totalBitsType);
+
+        dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Shl, new LiteralExpression(childTotalBits.ToString()));
+        dafnyExpr = new BinaryExpression(dafnyExpr, Operator.BitwiseOr, childExpression);
+        return dafnyExpr;
+    }
+
+    private Expression OneExtend(uint totalBits, uint childTotalBits, Expression childExpr)
+    {
+        var totalBitsType = new TypeReference($"bv{totalBits}");
+        var childExpression = new AsExpression(childExpr, totalBitsType);
+
+        uint oneTotalBits = totalBits - childTotalBits;
+
+        var extendBitsType = new TypeReference($"bv{oneTotalBits}");
+        Expression dafnyExpr = LiteralExpression.Zero;
+        dafnyExpr = new AsExpression(dafnyExpr, extendBitsType);
+
+        dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Minus, new AsExpression(LiteralExpression.One, extendBitsType));
+        dafnyExpr = new AsExpression(dafnyExpr, totalBitsType);
+
+        dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Shl, new LiteralExpression(childTotalBits.ToString()));
+        dafnyExpr = new BinaryExpression(dafnyExpr, Operator.BitwiseOr, childExpression);
         return dafnyExpr;
     }
 
