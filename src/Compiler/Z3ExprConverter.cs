@@ -286,6 +286,24 @@ public class Z3ExprConverter
                             dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), operators[declKind], new SDC.AST.AsExpression(a1, t));
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_BSHL:
+                    case Z3_decl_kind.Z3_OP_BLSHR:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+
+                            var t = Z3SortToDafny(z3Expr.Sort);
+
+                            var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
+                            {
+                                [Z3_decl_kind.Z3_OP_BSHL] = Operator.Shl,
+                                [Z3_decl_kind.Z3_OP_BLSHR] = Operator.Shr
+                            };
+
+                            // Only cast the LHS
+                            dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), operators[declKind], a1);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_BUDIV:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
