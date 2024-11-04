@@ -11,11 +11,12 @@ public class PreprocessingPasses
         //      At the moment we traverse the whole expression for each routine.
 
         // Be careful with the ordering.
-        // Some replacements could potential rely on others being applied before.
+        // Some replacements could potential rely on others being applied before/after.
         expr = ReplaceBvsmod(expr);
         expr = ReplaceBvnor(expr);
         expr = ReplaceRepeat(expr);
         expr = ReplaceBvnand(expr);
+        expr = ReplaceBvxnor(expr);
 
         return expr;
     }
@@ -160,6 +161,30 @@ public class PreprocessingPasses
         var bvandExpr = ctx.MkBVAND(s, t);
         return ctx.MkBVNot(bvandExpr);
     }
+
+
+    private static Expr ReplaceBvxnor(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BXNOR,
+            InlineBvxnor
+        );
+    }
+
+    private static Expr InlineBvxnor(Expr expr)
+    {
+        var ctx = expr.Context;
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+
+        // bvxnor is defined as (bvor (bvand s t) (bvand (bvnot s) (bvnot t)))
+        var bvand1 = ctx.MkBVAND(s, t);
+        var bvand2 = ctx.MkBVAND(ctx.MkBVNot(s), ctx.MkBVNot(t));
+
+        return ctx.MkBVOR(bvand1, bvand2);
+    }
+
 
 }
 
