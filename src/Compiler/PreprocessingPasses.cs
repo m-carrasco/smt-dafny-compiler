@@ -7,23 +7,29 @@ public class PreprocessingPasses
 
     public static Expr Preprocess(Expr expr)
     {
-        return ReplaceBvsmod(expr);
+        // TODO: Improve the replacement efficency.
+        //      At the moment we traverse the whole expression for each routine.
+
+        // Be careful with the ordering.
+        // Some replacements could potential rely on others being applied before.
+        expr = ReplaceBvsmod(expr);
+        expr = ReplaceBvnor(expr);
+
+        return expr;
     }
 
-    private static Expr ReplaceBvsmod(Expr expr)
+    private static Expr ReplaceExpr(Expr expr, Func<Expr, bool> shouldReplace, Func<Expr, Expr> inlineFunc)
     {
-        if (expr.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BSMOD)
+        if (shouldReplace(expr))
         {
-            var s = (BitVecExpr)expr.Args[0];
-            var t = (BitVecExpr)expr.Args[1];
-            return InlineBvsmod(s, t, expr.Context);
+            return inlineFunc(expr);
         }
         else if (expr.NumArgs > 0)
         {
             Expr[] newArgs = new Expr[expr.NumArgs];
             for (uint i = 0; i < expr.NumArgs; i++)
             {
-                newArgs[i] = ReplaceBvsmod(expr.Arg(i));
+                newArgs[i] = ReplaceExpr(expr.Arg(i), shouldReplace, inlineFunc);
             }
             return expr.FuncDecl.Apply(newArgs);
         }
@@ -33,9 +39,23 @@ public class PreprocessingPasses
         }
     }
 
-    private static BitVecExpr InlineBvsmod(BitVecExpr s, BitVecExpr t, Context ctx)
+
+    private static Expr ReplaceBvsmod(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BSMOD,
+            InlineBvsmod
+        );
+    }
+
+    private static BitVecExpr InlineBvsmod(Expr expr)
     {
         // This is following the definition of bvsmod in https://smt-lib.org/logics-all.shtml#QF_BV
+
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+        var ctx = expr.Context;
 
         uint m = s.SortSize; // Bit-width of s (and t, assuming same width).
         var msb_s = ctx.MkExtract(m - 1, m - 1, s);
@@ -67,5 +87,24 @@ public class PreprocessingPasses
         );
     }
 
+    private static Expr ReplaceBvnor(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BNOR,
+            InlineBvnor
+        );
+    }
+
+    private static Expr InlineBvnor(Expr expr)
+    {
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+        var ctx = expr.Context;
+
+        // bvnor is defined as bvnot(bvor s t)
+        var bvorExpr = ctx.MkBVOR(s, t);
+        return ctx.MkBVNot(bvorExpr);
+    }
 }
 
