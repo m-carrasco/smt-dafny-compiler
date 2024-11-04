@@ -15,6 +15,7 @@ public class PreprocessingPasses
         expr = ReplaceBvsmod(expr);
         expr = ReplaceBvnor(expr);
         expr = ReplaceRepeat(expr);
+        expr = ReplaceBvnand(expr);
 
         return expr;
     }
@@ -139,5 +140,26 @@ public class PreprocessingPasses
             return ctx.MkConcat(t, BuildRepeat(ctx, t, repeatCount - 1));
         }
     }
+
+    private static Expr ReplaceBvnand(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BNAND,
+            InlineBvnand
+        );
+    }
+
+    private static Expr InlineBvnand(Expr expr)
+    {
+        var ctx = expr.Context;
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+
+        // bvnand is defined as bvnot(bvand s t)
+        var bvandExpr = ctx.MkBVAND(s, t);
+        return ctx.MkBVNot(bvandExpr);
+    }
+
 }
 
