@@ -14,6 +14,7 @@ public class PreprocessingPasses
         // Some replacements could potential rely on others being applied before.
         expr = ReplaceBvsmod(expr);
         expr = ReplaceBvnor(expr);
+        expr = ReplaceRepeat(expr);
 
         return expr;
     }
@@ -105,6 +106,38 @@ public class PreprocessingPasses
         // bvnor is defined as bvnot(bvor s t)
         var bvorExpr = ctx.MkBVOR(s, t);
         return ctx.MkBVNot(bvorExpr);
+    }
+
+    private static Expr ReplaceRepeat(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_REPEAT,
+            InlineRepeat
+        );
+    }
+
+    private static Expr InlineRepeat(Expr expr)
+    {
+        var ctx = expr.Context;
+        var t = (BitVecExpr)expr.Args[0];
+        uint repeatCount = (uint)expr.FuncDecl.Parameters[0].Int;  // Get the repeat count parameter
+
+        return BuildRepeat(ctx, t, repeatCount);
+    }
+
+    private static BitVecExpr BuildRepeat(Context ctx, BitVecExpr t, uint repeatCount)
+    {
+        if (repeatCount == 1)
+        {
+            // Base case: repeat 1 just returns t
+            return t;
+        }
+        else
+        {
+            // Recursive case: concatenate t with the repeat of t, j-1 times
+            return ctx.MkConcat(t, BuildRepeat(ctx, t, repeatCount - 1));
+        }
     }
 }
 
