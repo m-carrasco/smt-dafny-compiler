@@ -8,7 +8,6 @@ namespace SDC.CLI;
 
 class SDC
 {
-
     static void DefineOperation<T>(IEnumerable<TypeReference> types, List<T> methods, List<Func<TypeReference, T>> builders)
     {
         foreach (var type in types)

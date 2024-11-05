@@ -18,6 +18,7 @@ public class PreprocessingPasses
         expr = ReplaceBvnand(expr);
         expr = ReplaceBvxnor(expr);
         expr = ReplaceBvashr(expr);
+        expr = ReplaceBvsrem(expr);
 
         return expr;
     }
@@ -221,6 +222,60 @@ public class PreprocessingPasses
             ctx.MkEq(msb_s, ctx.MkBV(0, 1)),  // Check if the MSB of s is 0
             lshrResult,  // If MSB is 0, return lshr(s, t)
             negLshrResult  // If MSB is 1, return bvnot(lshr(bvnot(s), t))
+        );
+    }
+
+    private static Expr ReplaceBvsrem(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BSREM,
+            InlineBvsrem
+        );
+    }
+
+    private static Expr InlineBvsrem(Expr expr)
+    {
+        /*
+        (bvsrem s t) abbreviates
+            (let ((?msb_s ((_ extract |m-1| |m-1|) s))
+                    (?msb_t ((_ extract |m-1| |m-1|) t)))
+                (ite (and (= ?msb_s #b0) (= ?msb_t #b0))
+                    (bvurem s t)
+                (ite (and (= ?msb_s #b1) (= ?msb_t #b0))
+                    (bvneg (bvurem (bvneg s) t))
+                (ite (and (= ?msb_s #b0) (= ?msb_t #b1))
+                    (bvurem s (bvneg t)))
+                    (bvneg (bvurem (bvneg s) (bvneg t))))))
+        */
+        var ctx = expr.Context;
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+        uint m = s.SortSize;
+
+        // Extract the most significant bits (MSBs) of s and t to determine their signs
+        var msb_s = ctx.MkExtract(m - 1, m - 1, s);
+        var msb_t = ctx.MkExtract(m - 1, m - 1, t);
+
+        // Define the cases based on the MSB values of s and t
+        var urem_s_t = ctx.MkBVURem(s, t);                      // bvurem(s, t)
+        var neg_urem_neg_s_t = ctx.MkBVNeg(ctx.MkBVURem(ctx.MkBVNeg(s), t));   // bvneg(bvurem(bvneg(s), t))
+        var urem_s_neg_t = ctx.MkBVURem(s, ctx.MkBVNeg(t));     // bvurem(s, bvneg(t))
+        var neg_urem_neg_s_neg_t = ctx.MkBVNeg(ctx.MkBVURem(ctx.MkBVNeg(s), ctx.MkBVNeg(t)));  // bvneg(bvurem(bvneg(s), bvneg(t)))
+
+        // Construct the nested if-then-else (ite) expressions for bvsrem
+        return ctx.MkITE(
+            ctx.MkAnd(ctx.MkEq(msb_s, ctx.MkBV(0, 1)), ctx.MkEq(msb_t, ctx.MkBV(0, 1))),  // Case: s >= 0 and t >= 0
+            urem_s_t,
+            ctx.MkITE(
+                ctx.MkAnd(ctx.MkEq(msb_s, ctx.MkBV(1, 1)), ctx.MkEq(msb_t, ctx.MkBV(0, 1))),  // Case: s < 0 and t >= 0
+                neg_urem_neg_s_t,
+                ctx.MkITE(
+                    ctx.MkAnd(ctx.MkEq(msb_s, ctx.MkBV(0, 1)), ctx.MkEq(msb_t, ctx.MkBV(1, 1))),  // Case: s >= 0 and t < 0
+                    urem_s_neg_t,
+                    neg_urem_neg_s_neg_t  // Case: s < 0 and t < 0
+                )
+            )
         );
     }
 
