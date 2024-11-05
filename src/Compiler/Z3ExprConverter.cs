@@ -347,7 +347,7 @@ public class Z3ExprConverter
                         {
                             var condExpr = _childConverter(z3Expr.Args[0]);
                             var trueExpr = _childConverter(z3Expr.Args[1]);
-                            var falseExpr = _childConverter(z3Expr.Args[1]);
+                            var falseExpr = _childConverter(z3Expr.Args[2]);
 
                             dafnyExpr = new MathIfThenElse(condExpr, trueExpr, falseExpr);
                             break;
