@@ -1,5 +1,4 @@
 ﻿using System.CommandLine;
-using System.Linq;
 using Microsoft.Z3;
 using SDC.AST;
 using SDC.Converter;
@@ -73,6 +72,22 @@ class SDC
         }
     }
 
+    static void PreprocessSMTFile(FileInfo inputSMTFile, DirectoryInfo outputDir)
+    {
+        string smt2FunctionContent = File.ReadAllText(inputSMTFile.FullName);
+
+        using (Context ctx = new Context())
+        {
+            BoolExpr[] constraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
+            ApplyPreprocessingPasses(constraints);
+
+            Solver s = ctx.MkSolver();
+            s.Add(constraints);
+
+            outputDir.Create();
+            File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "preprocess.smt2" }), s.ToString());
+        }
+    }
     static void CompilePointwise(FileInfo inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
     {
         string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
@@ -183,6 +198,40 @@ class SDC
         };
 
         var rootCommand = new RootCommand("The SMT Dafny Compiler (SDC)");
+
+        var preprocessCommand = new Command("preprocess", "Applies the preprocessing SMT passes on the input SMT2 file.");
+        rootCommand.AddCommand(preprocessCommand);
+        {
+            Option<FileInfo> inputOption = new Option<FileInfo>(
+                name: "--input-smt2",
+                description: "The input SMT2 file.")
+            {
+                IsRequired = true
+            };
+
+            preprocessCommand.AddOption(inputOption);
+            preprocessCommand.AddOption(outputOption);
+
+            preprocessCommand.SetHandler((inputSMT, outputDir) =>
+            {
+                if (!inputSMT.Exists)
+                {
+                    Console.Error.WriteLine($"Error: The input SMT2 file '{inputSMT.FullName}' does not exist.");
+                    return Task.FromResult(1);
+                }
+
+                if (outputDir.Exists)
+                {
+                    Console.Error.WriteLine($"Error: The output directory '{outputDir.FullName}' already exists.");
+                    return Task.FromResult(1);
+                }
+
+                PreprocessSMTFile(inputSMT, outputDir);
+
+                return Task.FromResult(0);
+            },
+            inputOption, outputOption);
+        }
 
         var compileCommand = new Command("compile", "Compile an SMT2 file into a Dafny program.");
         rootCommand.AddCommand(compileCommand);
