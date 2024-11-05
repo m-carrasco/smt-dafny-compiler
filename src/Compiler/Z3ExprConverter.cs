@@ -286,6 +286,18 @@ public class Z3ExprConverter
                             dafnyExpr = new SDC.AST.BinaryExpression(new SDC.AST.AsExpression(a0, t), operators[declKind], new SDC.AST.AsExpression(a1, t));
                             break;
                         }
+                    case Z3_decl_kind.Z3_OP_BCOMP:
+                        {
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+
+                            var t = Z3SortToDafny(z3Expr.Args[0].Sort);
+
+                            var eq = new BinaryExpression(new AsExpression(a0, t), Operator.Equal, new AsExpression(a1, t));
+
+                            dafnyExpr = new MathIfThenElse(new BinaryExpression(eq, Operator.Equal, LiteralExpression.True), new AsExpression(LiteralExpression.One, new TypeReference("bv1")), new AsExpression(LiteralExpression.Zero, new TypeReference("bv1")));
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_BSHL:
                     case Z3_decl_kind.Z3_OP_BLSHR:
                         {
