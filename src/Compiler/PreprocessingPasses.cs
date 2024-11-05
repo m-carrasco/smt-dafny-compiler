@@ -17,6 +17,7 @@ public class PreprocessingPasses
         expr = ReplaceRepeat(expr);
         expr = ReplaceBvnand(expr);
         expr = ReplaceBvxnor(expr);
+        expr = ReplaceBvashr(expr);
 
         return expr;
     }
@@ -185,6 +186,43 @@ public class PreprocessingPasses
         return ctx.MkBVOR(bvand1, bvand2);
     }
 
+
+    private static Expr ReplaceBvashr(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_BASHR,
+            InlineBvashr
+        );
+    }
+
+    private static Expr InlineBvashr(Expr expr)
+    {
+        /*
+            (bvashr s t) abbreviates 
+                (ite (= ((_ extract |m-1| |m-1|) s) #b0)
+                    (bvlshr s t)
+                    (bvnot (bvlshr (bvnot s) t)))
+
+        */
+        var ctx = expr.Context;
+        var s = (BitVecExpr)expr.Args[0];
+        var t = (BitVecExpr)expr.Args[1];
+
+        uint m = s.SortSize;  // Bit-width of s
+        var msb_s = ctx.MkExtract(m - 1, m - 1, s);  // Extract the most significant bit of s
+
+        // Define the two cases for the result of the arithmetic shift right
+        var lshrResult = ctx.MkBVLSHR(s, t);  // Logical shift right of s by t
+        var negLshrResult = ctx.MkBVNot(ctx.MkBVLSHR(ctx.MkBVNot(s), t));  // bvnot(bvlshr(bvnot(s), t))
+
+        // Construct the if-then-else expression for the bvashr
+        return ctx.MkITE(
+            ctx.MkEq(msb_s, ctx.MkBV(0, 1)),  // Check if the MSB of s is 0
+            lshrResult,  // If MSB is 0, return lshr(s, t)
+            negLshrResult  // If MSB is 1, return bvnot(lshr(bvnot(s), t))
+        );
+    }
 
 }
 
