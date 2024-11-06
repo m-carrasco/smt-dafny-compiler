@@ -119,9 +119,11 @@ public class Z3ExprConverter
         {
             if (z3Expr.IsApp)
             {
-                switch (z3Expr.FuncDecl.DeclKind)
+                var declKind = z3Expr.FuncDecl.DeclKind;
+                switch (declKind)
                 {
                     case Z3_decl_kind.Z3_OP_EQ:
+                    case Z3_decl_kind.Z3_OP_DISTINCT:
                     case Z3_decl_kind.Z3_OP_UGEQ:
                     case Z3_decl_kind.Z3_OP_UGT:
                     case Z3_decl_kind.Z3_OP_ULT:
@@ -134,6 +136,7 @@ public class Z3ExprConverter
                                 [Z3_decl_kind.Z3_OP_EQ] = Operator.Equal,
                                 [Z3_decl_kind.Z3_OP_UGT] = Operator.Greater,
                                 [Z3_decl_kind.Z3_OP_ULT] = Operator.Less,
+                                [Z3_decl_kind.Z3_OP_DISTINCT] = Operator.NotEqual,
                             };
 
                             var a0 = _childConverter(z3Expr.Args[0]);
@@ -198,16 +201,19 @@ public class Z3ExprConverter
                             break;
                         }
                     case Z3_decl_kind.Z3_OP_AND:
+                    case Z3_decl_kind.Z3_OP_OR:
                         {
+                            var op = declKind == Z3_decl_kind.Z3_OP_AND ? Operator.BooleanAnd : Operator.BooleanOr;
+
                             var child = z3Expr.Args.Select(arg => _childConverter(arg)).ToList();
                             if (child.Count < 2)
                             {
-                                throw new NotSupportedException("AND expression has less than two sub-expressions");
+                                throw new NotSupportedException("The expression has less than two sub-expressions");
                             }
-                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], SDC.AST.Operator.BooleanAnd, child[1]);
+                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], op, child[1]);
                             for (int i = 2; i < child.Count; i++)
                             {
-                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, SDC.AST.Operator.BooleanAnd, child[i]);
+                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, op, child[i]);
                             }
                             break;
                         }
