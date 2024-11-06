@@ -42,6 +42,10 @@ RUN mkdir /home/ubuntu/slot
 COPY --chown=ubuntu:mygroup --from=build_slot /root/slot /home/ubuntu/slot
 ENV SDC_SLOT=/home/ubuntu/slot/slot
 
+ENV PATH="/home/ubuntu/slot/:${PATH}"
+ENV PATH="${DAFNY_SRC_DIR}/Scripts/:${PATH}"
+ENV PATH="/home/ubuntu/smt-dafny-compiler/src/SDC/bin/Debug/net8.0/linux-x64/publish/:${PATH}"
+
 COPY --chown=ubuntu:mygroup . ${SDC_SRC_DIR}
 WORKDIR $SDC_SRC_DIR
 RUN $SDC_SRC_DIR/ci/publish-self-contained.sh && cd src/ && dotnet test
