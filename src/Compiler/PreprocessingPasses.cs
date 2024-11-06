@@ -25,23 +25,28 @@ public class PreprocessingPasses
 
     private static Expr ReplaceExpr(Expr expr, Func<Expr, bool> shouldReplace, Func<Expr, Expr> inlineFunc)
     {
-        if (shouldReplace(expr))
-        {
-            return inlineFunc(expr);
-        }
-        else if (expr.NumArgs > 0)
+        // If the expression has arguments, process them first.
+        if (expr.NumArgs > 0)
         {
             Expr[] newArgs = new Expr[expr.NumArgs];
             for (uint i = 0; i < expr.NumArgs; i++)
             {
+                // Recursively apply ReplaceExpr to each argument.
                 newArgs[i] = ReplaceExpr(expr.Arg(i), shouldReplace, inlineFunc);
             }
-            return expr.FuncDecl.Apply(newArgs);
+
+            // After processing children, apply them to the function declaration to reconstruct the expression.
+            expr = expr.FuncDecl.Apply(newArgs);
         }
-        else
+
+        // Now, check if the current (potentially modified) expression should be replaced.
+        if (shouldReplace(expr))
         {
-            return expr;
+            return inlineFunc(expr);
         }
+
+        // Return the expression as-is if no replacement was needed.
+        return expr;
     }
 
 
