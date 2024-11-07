@@ -84,8 +84,9 @@ public class Z3ExprConverter
 
         uint n = sortSize;
 
-        Expression aIsNegative = new BinaryExpression(new LiteralExpression((n - 1).ToString()), Operator.Less, a);
-        LiteralExpression signMask = new LiteralExpression(((int)Math.Pow(2, n - 1)).ToString());
+        var targetType = new TypeReference($"bv{n}");
+        Expression aIsNegative = new BinaryExpression(new AsExpression(new LiteralExpression((n - 1).ToString()), targetType), Operator.Less, a);
+        var signMask = new AsExpression(new LiteralExpression(((uint)Math.Pow(2, n - 1)).ToString()), targetType);
         Expression bIsNonNegative = new BinaryExpression(b, Operator.Less, signMask);
 
         Expression aNegBNonNeg = new BinaryExpression(aIsNegative, Operator.BooleanAnd, bIsNonNegative);
@@ -465,7 +466,7 @@ public class Z3ExprConverter
             }
             else if (z3Expr is BitVecNum bitVecNum)
             {
-                dafnyExpr = new LiteralExpression(bitVecNum.UInt64.ToString());
+                dafnyExpr = new AsExpression(new LiteralExpression(bitVecNum.UInt64.ToString()), new TypeReference($"bv{bitVecNum.SortSize}"));
             }
             else
             {
