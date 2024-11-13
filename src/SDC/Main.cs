@@ -107,6 +107,17 @@ class SDC
             FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
             functions.Add(functionDef);
 
+
+            // In case any optimization removes a free variable, both cases must match.
+            if (methodDef.Parameters.Count > functionDef.Parameters.Count)
+            {
+                functionDef.Parameters = methodDef.Parameters.ToList();
+            }
+            else
+            {
+                methodDef.Parameters = functionDef.Parameters.ToList();
+            }
+
             methodDef.Ensures = BuildPointwiseEq(methodDef, functionDef);
 
             DefinePreludeOperations(preludeTypes, methods, functions);
