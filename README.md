@@ -46,8 +46,57 @@ Before pushing, ensure that the code is formatted correctly; otherwise, the CI w
 dotnet format ./src/SMTDafnyCompiler.sln
 ```
 
-## Usage
+## Toy Example: SMT Pointwise Test 
 
-```bash
-TODO: For now, check the integration tests
+The following example shows how SDC synthesizes a Dafny program `P` for an SMT formula `F`. In addition, `F` is optimized using SLOT into `F'`. In order to be correct, `P` must prove that `F` is equivalent to `F'` using Dafny. If the program cannot be correct, the test found a bug in the verifier.
+
+### Input Formula `F`
+
 ```
+(declare-const x (_ BitVec 8))
+(declare-const y (_ BitVec 8))
+(assert (= (bvlshr x #b00001000) (bvlshr y #b00000001))) 
+(check-sat)
+```
+
+### Equivalent Formula `F'`
+
+```
+(declare-fun y () (_ BitVec 8))
+(assert
+ (bvult y (_ bv2 8)))
+(check-sat)
+```
+
+### Dafny Program `P`
+
+The verifier is then tasked with proving the following program correct. This program also has a harness that allows it to be executed concretely. 
+
+function Spec(x : bv8, y : bv8) : bool
+{
+    (y < (2 as bv8))
+}
+
+method  Constraints(x : bv8, y : bv8) returns (sat : bool)
+    ensures (Spec(x, y) == sat)
+{
+    var l0 : bv8;
+    var l1 : bv8;
+    var l2 : bv8;
+    var l3 : bv8;
+    var l4 : bv8;
+    var l5 : bv8;
+    var l6 : bool;
+    
+    l0 := x;
+    l1 := (8 as bv8);
+    l2 := ((l0 as bv8) >> l1);
+    l3 := y;
+    l4 := (1 as bv8);
+    l5 := ((l3 as bv8) >> l4);
+    l6 := (l2 == l5);
+    if ((l6 == false)) {
+        return false;
+    }
+    return true;
+}
