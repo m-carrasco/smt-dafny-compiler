@@ -4,7 +4,6 @@ using Microsoft.Z3;
 
 public class PreprocessingPasses
 {
-
     public static Expr Preprocess(Expr expr)
     {
         // TODO: Improve the replacement efficency.
@@ -14,6 +13,7 @@ public class PreprocessingPasses
         // Some replacements could potential rely on others being applied before/after.
         expr = ReplaceBvsmod(expr);
         expr = ReplaceBvnor(expr);
+        expr = ReplaceSignExtend(expr); // it relies on repeat
         expr = ReplaceRepeat(expr);
         expr = ReplaceBvnand(expr);
         expr = ReplaceBvxnor(expr);
@@ -49,6 +49,49 @@ public class PreprocessingPasses
         return expr;
     }
 
+    private static Expr ReplaceSignExtend(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_SIGN_EXT,
+            InlineSignExtend
+        );
+    }
+
+    private static Expr InlineSignExtend(Expr expr)
+    {
+        var ctx = expr.Context;
+        var t = (BitVecExpr)expr.Args[0];
+        uint extendCount = (uint)expr.FuncDecl.Parameters[0].Int;  // Get the sign extension parameter
+
+        return BuildSignExtend(ctx, t, extendCount);
+    }
+
+    private static BitVecExpr BuildSignExtend(Context ctx, BitVecExpr t, uint extendCount)
+    {
+        /*
+            ((_ sign_extend 0) t) stands for t
+                ((_ sign_extend i) t) abbreviates
+                (concat ((_ repeat i) ((_ extract |m-1| |m-1|) t)) t)
+        */
+        if (extendCount == 0)
+        {
+            // Base case: no extension needed, return t as-is
+            return t;
+        }
+        else
+        {
+            // Get the most significant bit (MSB) of t (bit at position m-1)
+            uint bitWidth = (uint)t.SortSize;
+            BitVecExpr msb = ctx.MkExtract(bitWidth - 1, bitWidth - 1, t);
+
+            // Repeat the MSB extendCount times
+            BitVecExpr signExtension = BuildRepeat(ctx, msb, extendCount);
+
+            // Concatenate the sign extension with the original bit-vector
+            return ctx.MkConcat(signExtension, t);
+        }
+    }
 
     private static Expr ReplaceBvsmod(Expr expr)
     {

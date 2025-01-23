@@ -423,43 +423,6 @@ public class Z3ExprConverter
                             dafnyExpr = ZeroExtend(totalBits, childExpressionSize, _childConverter(z3Expr.Args[0]));
                             break;
                         }
-                    case Z3_decl_kind.Z3_OP_SIGN_EXT:
-                        {
-                            // Check the MSB of the extended expression.
-                            // If it is zero, zero extend. Otherwise, "one extend" it.
-                            // The zero/one extension is done performing a "concat".
-
-                            var childExpressionSize = ((BitVecSort)z3Expr.Args[0].Sort).Size;
-                            var childExpressionSizeType = new TypeReference($"bv{childExpressionSize}");
-
-                            var childExpr = _childConverter(z3Expr.Args[0]);
-
-                            var oneChildSize = new AsExpression(LiteralExpression.One, childExpressionSizeType);
-
-                            dafnyExpr = oneChildSize;
-
-                            if (childExpressionSize == 0)
-                            {
-                                throw new NotImplementedException();
-                            }
-
-                            var sizeMinusOne = new LiteralExpression((childExpressionSize - 1).ToString());
-
-                            dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Shl, sizeMinusOne);
-
-                            // MSB in the child expression
-                            dafnyExpr = new BinaryExpression(childExpr, Operator.BitwiseAnd, dafnyExpr);
-
-                            var zeroChildSize = new AsExpression(LiteralExpression.Zero, childExpressionSizeType);
-                            // MSB is zero
-                            dafnyExpr = new BinaryExpression(dafnyExpr, Operator.Equal, zeroChildSize);
-
-                            var totalBits = ((BitVecSort)z3Expr.Sort).Size;
-
-                            // "zero extend" or "one extend" based on the MSB value
-                            dafnyExpr = new MathIfThenElse(dafnyExpr, ZeroExtend(totalBits, childExpressionSize, childExpr), OneExtend(totalBits, childExpressionSize, childExpr));
-                            break;
-                        }
                     default:
                         throw new NotImplementedException($"Unknown kind {z3Expr.FuncDecl.DeclKind}");
                 }
