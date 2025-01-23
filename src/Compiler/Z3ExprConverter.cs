@@ -1,5 +1,6 @@
 ﻿namespace SDC.Converter;
 
+using System.Numerics;
 using Microsoft.Z3;
 using SDC.AST;
 using SDC.Stubs;
@@ -83,10 +84,12 @@ public class Z3ExprConverter
         //        (bvult a b))))  ;; compare unsigned if same sign)
 
         uint n = sortSize;
-
         var targetType = new TypeReference($"bv{n}");
-        Expression aIsNegative = new BinaryExpression(new AsExpression(new LiteralExpression((n - 1).ToString()), targetType), Operator.Less, a);
-        var signMask = new AsExpression(new LiteralExpression(((uint)Math.Pow(2, n - 1)).ToString()), targetType);
+        ulong nonSignMask = (1UL << (int)(sortSize - 1)) - 1;
+
+        var dafnyNonSignMask = new AsExpression(new LiteralExpression(nonSignMask.ToString()), targetType);
+        Expression aIsNegative = new BinaryExpression(dafnyNonSignMask, Operator.Less, a);
+        var signMask = new AsExpression(new LiteralExpression(BigInteger.Pow(2, (int)n - 1).ToString()), targetType);
         Expression bIsNonNegative = new BinaryExpression(b, Operator.Less, signMask);
 
         Expression aNegBNonNeg = new BinaryExpression(aIsNegative, Operator.BooleanAnd, bIsNonNegative);
