@@ -21,6 +21,7 @@ public class FunctionConverter
             expression = new BinaryExpression(expression, Operator.BooleanAnd, expressions.ElementAt(i));
         }
 
+        _parameters.Sort((a, b) => a.Variable.Identifier.CompareTo(b.Variable.Identifier));
         var functionDef = new SDC.AST.FunctionDefinition(name, _parameters, new SDC.AST.TypeReference("bool"), expression);
         return functionDef;
     }
