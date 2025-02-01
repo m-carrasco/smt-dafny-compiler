@@ -87,6 +87,29 @@ class SDC
             File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "preprocess.smt2" }), s.ToString());
         }
     }
+    static void CompileFunction(FileInfo inputSMTFunction, DirectoryInfo outputDir)
+    {
+        string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
+
+        using (Context ctx = new Context())
+        {
+            HashSet<TypeReference> preludeTypes = new();
+            List<FunctionDefinition> functions = new();
+            BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
+            ApplyPreprocessingPasses(functionConstraints);
+            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
+            functions.Add(functionDef);
+
+            List<MethodDefinition> methods = new List<MethodDefinition>();
+            DefinePreludeOperations(preludeTypes, methods, functions);
+
+            Program program = new Program(new List<Import>(), functions, methods);
+
+            outputDir.Create();
+            File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "compiled.dfy" }), ASTWriter.Serialize(program));
+        }
+    }
+
     static void CompilePointwise(FileInfo inputSMTFunction, FileInfo inputSMTMethod, DirectoryInfo outputDir)
     {
         string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
@@ -290,6 +313,38 @@ class SDC
                 return Task.FromResult(0);
             },
             inputFunctionOption, inputMethodOption, outputOption);
+        }
+
+        {
+            var functionCommand = new Command("function", "Compile a Dafny function computing an input SMT2 formula.");
+            compileCommand.AddCommand(functionCommand);
+            functionCommand.AddOption(outputOption);
+            Option<FileInfo> inputFunctionOption = new Option<FileInfo>(
+                name: "--input-smt2-function",
+                description: "The input SMT2 file for the Dafny translation.")
+            {
+                IsRequired = true
+            };
+            functionCommand.Add(inputFunctionOption);
+            functionCommand.SetHandler((inputFunctionSMT, outputDir) =>
+            {
+                if (!inputFunctionSMT.Exists)
+                {
+                    Console.Error.WriteLine($"Error: The input function file '{inputFunctionSMT.FullName}' does not exist.");
+                    return Task.FromResult(1);
+                }
+
+                if (outputDir.Exists)
+                {
+                    Console.Error.WriteLine($"Error: The output directory '{outputDir.FullName}' already exists.");
+                    return Task.FromResult(1);
+                }
+
+                CompileFunction(inputFunctionSMT, outputDir);
+
+                return Task.FromResult(0);
+            },
+            inputFunctionOption, outputOption);
         }
 
         {
