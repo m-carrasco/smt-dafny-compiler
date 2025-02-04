@@ -39,10 +39,10 @@ class SDC
         return methodDef;
     }
 
-    static FunctionDefinition DefineSpec(BoolExpr[] functionConstraints, ISet<TypeReference> preludeTypes)
+    static FunctionDefinition DefineSpec(BoolExpr[] functionConstraints, ISet<TypeReference> preludeTypes, String name)
     {
         FunctionConverter f = new FunctionConverter();
-        FunctionDefinition functionDef = f.Convert("Spec", functionConstraints, preludeTypes);
+        FunctionDefinition functionDef = f.Convert(name, functionConstraints, preludeTypes);
         return functionDef;
     }
 
@@ -87,7 +87,7 @@ class SDC
             File.WriteAllText(Path.Join(new string[] { outputDir.FullName, "preprocess.smt2" }), s.ToString());
         }
     }
-    static void CompileFunction(FileInfo inputSMTFunction, DirectoryInfo outputDir)
+    static void CompileFunction(FileInfo inputSMTFunction, DirectoryInfo outputDir, String outputFunctionName)
     {
         string smt2FunctionContent = File.ReadAllText(inputSMTFunction.FullName);
 
@@ -97,7 +97,7 @@ class SDC
             List<FunctionDefinition> functions = new();
             BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
             ApplyPreprocessingPasses(functionConstraints);
-            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
+            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes, outputFunctionName);
             functions.Add(functionDef);
 
             List<MethodDefinition> methods = new List<MethodDefinition>();
@@ -127,7 +127,7 @@ class SDC
             List<FunctionDefinition> functions = new();
             BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
             ApplyPreprocessingPasses(functionConstraints);
-            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
+            FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes, "Spec");
             functions.Add(functionDef);
 
 
@@ -197,7 +197,7 @@ class SDC
             {
                 BoolExpr[] functionConstraints = ctx.ParseSMTLIB2String(smt2FunctionContent, null, null, null, null);
                 ApplyPreprocessingPasses(functionConstraints);
-                FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes);
+                FunctionDefinition functionDef = DefineSpec(functionConstraints, preludeTypes, "Spec");
                 functions.Add(functionDef);
                 methodDef.Ensures = BuildPointwiseEq(methodDef, functionDef);
             }
@@ -326,7 +326,16 @@ class SDC
                 IsRequired = true
             };
             functionCommand.Add(inputFunctionOption);
-            functionCommand.SetHandler((inputFunctionSMT, outputDir) =>
+
+            Option<String> outputFunctionNameOption = new Option<String>(
+                name: "--output-function-name",
+                description: "The name for the output Dafny function.")
+            {
+                IsRequired = true
+            };
+            functionCommand.Add(outputFunctionNameOption);
+
+            functionCommand.SetHandler((inputFunctionSMT, outputDir, outputFunctionName) =>
             {
                 if (!inputFunctionSMT.Exists)
                 {
@@ -340,11 +349,17 @@ class SDC
                     return Task.FromResult(1);
                 }
 
-                CompileFunction(inputFunctionSMT, outputDir);
+                if (outputFunctionName.Length == 0)
+                {
+                    Console.Error.WriteLine($"Error: The function name cannot be the empty string.");
+                    return Task.FromResult(1);
+                }
+
+                CompileFunction(inputFunctionSMT, outputDir, outputFunctionName);
 
                 return Task.FromResult(0);
             },
-            inputFunctionOption, outputOption);
+            inputFunctionOption, outputOption, outputFunctionNameOption);
         }
 
         {

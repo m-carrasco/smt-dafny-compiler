@@ -1,5 +1,8 @@
-; RUN: %SDC compile function --output-dir %T-out/ --input-smt2-function %s
-; RUN %dafny build --allow-warnings --standard-libraries %T-out/compiled.dfy -o %t.build/constraints.cs | %FileCheck --check-prefix=CHECK-BUILD %s
+; RUN: %SDC compile function --output-dir %T-out/ --input-smt2-function %s --output-function-name "Precondition"
+; RUN: %dafny verify --allow-warnings --standard-libraries %T-out/compiled.dfy 
+; RUN: cat %T-out/compiled.dfy | %FileCheck --check-prefix=CHECK-DAFNY %s
+
+; CHECK-DAFNY: function Precondition
 
 (set-info :status unknown)
 (declare-fun sym2 () (_ BitVec 32))
