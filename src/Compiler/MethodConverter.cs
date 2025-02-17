@@ -19,10 +19,10 @@ public class MethodConverter
         _localVariables = new List<VariableDefinition>();
         _statements = new List<Statement>();
         // Use the assigned local variable for child expressions.
-        _exprConverter = Z3ExprConverter.CreateMethodConverter(e => _conversionCache[e.Id], preludeTypes);
+        _exprConverter = Z3ExprConverter.CreateMethodConverter(e => _conversionCache[e.Id], preludeTypes, assertions.OfType<Microsoft.Z3.Expr>().ToList());
         _parameters = _exprConverter.Parameters;
 
-        foreach (Z3BoolExpr e in assertions)
+        foreach (Z3BoolExpr e in Simplifier.RemoveTrueAssertions(assertions))
         {
             IdentifierExpression variableIdentifier = DefineExpression(e);
             var cond = new SDC.AST.BinaryExpression(variableIdentifier, Operator.Equal, LiteralExpression.False);

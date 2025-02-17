@@ -147,6 +147,7 @@ public enum Operator
     Division,
     BooleanAnd,
     BooleanOr,
+    BooleanXor,
     BooleanNegation,
     BitwiseOr,
     BitwiseAnd,

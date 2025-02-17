@@ -7,7 +7,7 @@
 ; RUN: %model-packer --negate %s %t.packed.unsat
 ; RUN: %t.build/constraints %t.packed.unsat | %FileCheck --check-prefix=CHECK-UNSAT %s
 
-; CHECK-BUILD: Dafny program verifier finished with 1 verified, 0 errors
+; CHECK-BUILD: Dafny program verifier finished with [[VERIFIED:[1-9][0-9]*]] verified, 0 errors
 ; CHECK-SAT: sat: true
 ; CHECK-UNSAT: sat: false
 

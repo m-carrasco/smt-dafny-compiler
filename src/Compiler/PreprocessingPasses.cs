@@ -1,9 +1,11 @@
 ﻿namespace SDC.PreProcessingPass;
 
+using System.Numerics;
 using Microsoft.Z3;
 
 public class PreprocessingPasses
 {
+
     public static Expr Preprocess(Expr expr)
     {
         // TODO: Improve the replacement efficency.
@@ -13,15 +15,19 @@ public class PreprocessingPasses
         // Some replacements could potential rely on others being applied before/after.
         expr = ReplaceBvsmod(expr);
         expr = ReplaceBvnor(expr);
-        expr = ReplaceSignExtend(expr); // it relies on repeat
+        expr = ReplaceSignExtend(expr); // it introduces 'repeat' so it must be before replacing 'repeat'
         expr = ReplaceRepeat(expr);
         expr = ReplaceBvnand(expr);
         expr = ReplaceBvxnor(expr);
         expr = ReplaceBvashr(expr);
         expr = ReplaceBvsrem(expr);
-
+        expr = ReplaceSignedGreaterThan(expr); // it introduces 'bvslt' so it must be before replacing 'bvslt'
+        expr = ReplaceSignedGreaterOrEqThan(expr); // it introduces 'bvslt' so it must be before replacing 'bvslt'
+        expr = ReplaceSignedLessOrEq(expr); // it introduces 'bvslt' so it must be before replacing 'bvslt'
+        expr = ReplaceSignedLessThan(expr);
         return expr;
     }
+
 
     private static Expr ReplaceExpr(Expr expr, Func<Expr, bool> shouldReplace, Func<Expr, Expr> inlineFunc)
     {
@@ -47,6 +53,123 @@ public class PreprocessingPasses
 
         // Return the expression as-is if no replacement was needed.
         return expr;
+    }
+
+    private static Expr ReplaceSignedLessOrEq(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_SGEQ,
+            InlineSignedLessOrEq
+        );
+    }
+
+    private static Expr InlineSignedLessOrEq(Expr expr)
+    {
+        var ctx = expr.Context;
+        var a = (BitVecExpr)expr.Args[0];
+        var b = (BitVecExpr)expr.Args[1];
+
+        return BuildSignedLessOrEq(ctx, a, b);
+    }
+
+    static BoolExpr BuildSignedLessOrEq(Context ctx, BitVecExpr a, BitVecExpr b)
+    {
+        return Simplifier.ReplaceWithConstIfPossible(ctx.MkNot(Simplifier.ReplaceWithConstIfPossible(ctx.MkBVSLT(b, a))));
+    }
+
+    private static Expr ReplaceSignedGreaterOrEqThan(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_SGEQ,
+            InlineSignedGreaterOrEq
+        );
+    }
+
+    private static Expr InlineSignedGreaterOrEq(Expr expr)
+    {
+        var ctx = expr.Context;
+        var a = (BitVecExpr)expr.Args[0];
+        var b = (BitVecExpr)expr.Args[1];
+
+        return BuildSignedGreaterOrEq(ctx, a, b);
+    }
+
+    static BoolExpr BuildSignedGreaterOrEq(Context ctx, BitVecExpr a, BitVecExpr b)
+    {
+        return Simplifier.ReplaceWithConstIfPossible(ctx.MkNot(Simplifier.ReplaceWithConstIfPossible(ctx.MkBVSLT(a, b))));
+    }
+
+    private static Expr ReplaceSignedGreaterThan(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_SGT,
+            InlineSignedGreaterThan
+        );
+    }
+
+    private static Expr InlineSignedGreaterThan(Expr expr)
+    {
+        var ctx = expr.Context;
+        var a = (BitVecExpr)expr.Args[0];
+        var b = (BitVecExpr)expr.Args[1];
+
+        return BuildSignedGreaterThan(ctx, a, b);
+    }
+
+    static BoolExpr BuildSignedGreaterThan(Context ctx, BitVecExpr a, BitVecExpr b)
+    {
+        return ctx.MkBVSLT(b, a);
+    }
+
+
+    private static Expr ReplaceSignedLessThan(Expr expr)
+    {
+        return ReplaceExpr(
+            expr,
+            e => e.FuncDecl.DeclKind == Z3_decl_kind.Z3_OP_SLT,
+            InlineSignedLessThan
+        );
+    }
+
+    private static Expr InlineSignedLessThan(Expr expr)
+    {
+        var ctx = expr.Context;
+        var a = (BitVecExpr)expr.Args[0];
+        var b = (BitVecExpr)expr.Args[1];
+
+        return BuildSignedLessThan(ctx, a, b);
+    }
+
+    static BoolExpr BuildSignedLessThan(Context ctx, BitVecExpr a, BitVecExpr b)
+    {
+        // (define-fun slt ((a (_ BitVec 8)) (b (_ BitVec 8))) Bool
+        // (or
+        //    (and (bvult #x7f a) (bvult b #x80))  ;; a is negative and b is non-negative
+        //    (and 
+        //        (not (xor (bvult a #x80) (bvult b #x80)))  ;; a and b have the same sign
+        //        (bvult a b))))  ;; compare unsigned if same sign)
+
+        uint bvSize = (uint)a.SortSize;
+        BigInteger maxPos = (BigInteger.One << ((int)bvSize - 1)) - 1;
+        BigInteger minNeg = BigInteger.One << ((int)bvSize - 1);
+
+        BitVecExpr x7f = ctx.MkBV(maxPos.ToString(), bvSize);
+        BitVecExpr x80 = ctx.MkBV(minNeg.ToString(), bvSize);
+
+        BoolExpr aNegative = Simplifier.ReplaceWithConstIfPossible(ctx.MkBVULT(x7f, a));
+        BoolExpr bNonNegative = Simplifier.ReplaceWithConstIfPossible(ctx.MkBVULT(b, x80));
+
+        BoolExpr diffSign = Simplifier.ReplaceWithConstIfPossible(ctx.MkXor(Simplifier.ReplaceWithConstIfPossible(ctx.MkBVULT(a, x80)), bNonNegative));
+        BoolExpr sameSign = Simplifier.ReplaceWithConstIfPossible(ctx.MkNot(diffSign));
+        BoolExpr unsignedComparison = Simplifier.ReplaceWithConstIfPossible(ctx.MkBVULT(a, b));
+
+        BoolExpr aNegativeAndBNonNegative = Simplifier.BuildAnd(ctx, [aNegative, bNonNegative]);
+        BoolExpr sameSignAndUnsignedComparison = Simplifier.BuildAnd(ctx, [sameSign, unsignedComparison]);
+
+        return Simplifier.ReplaceWithConstIfPossible(Simplifier.BuildOr(ctx, [aNegativeAndBNonNegative, sameSignAndUnsignedComparison]));
     }
 
     private static Expr ReplaceSignExtend(Expr expr)
