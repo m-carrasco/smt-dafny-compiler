@@ -39,7 +39,8 @@ public class Z3ExprConverter
 
     IDictionary<uint, Expression> _conversionCache = new Dictionary<uint, Expression>();
 
-    public List<VariableDefinition> Parameters = new List<VariableDefinition>();
+    private Dictionary<Z3Expr, VariableDefinition> _freeVariables = new Dictionary<Z3Expr, VariableDefinition>();
+    public List<VariableDefinition> Parameters => _freeVariables.Values.ToList();
 
     // The prelude has to be instantiated according to the types that have been detected.
     // This container stores such types.
@@ -55,10 +56,11 @@ public class Z3ExprConverter
         The function translation does not use local variables for intermediate results.
         In this mode, we use the same dafny expression for each Z3 expression on each occurrence. 
     */
-    public static Z3ExprConverter CreateFunctionConverter(ISet<TypeReference> preludeTypes)
+    public static Z3ExprConverter CreateFunctionConverter(ISet<TypeReference> preludeTypes, List<Z3Expr> inputExpressions)
     {
         var r = new Z3ExprConverter(ConversionKind.Function, preludeTypes);
         r._childConverter = (e) => r.Convert(e);
+        r.FindFreeVariables(inputExpressions);
         return r;
     }
 
@@ -67,11 +69,27 @@ public class Z3ExprConverter
         The childLookup returns the variable names.
         The caller must ensure that the child are processed first.
     */
-    public static Z3ExprConverter CreateMethodConverter(Func<Microsoft.Z3.Expr, Expression> childLookup, ISet<TypeReference> preludeTypes)
+    public static Z3ExprConverter CreateMethodConverter(Func<Microsoft.Z3.Expr, Expression> childLookup, ISet<TypeReference> preludeTypes, List<Z3Expr> inputExpressions)
     {
         var r = new Z3ExprConverter(ConversionKind.Method, preludeTypes);
         r._childConverter = childLookup;
+        r.FindFreeVariables(inputExpressions);
         return r;
+    }
+
+    // We must find the free variables before optimizing the expressions that are translated.
+    // Otherwise, we may accidentally erase unused variables.
+    public void FindFreeVariables(List<Z3Expr> expressions)
+    {
+        HashSet<Z3Expr> freeVars = new HashSet<Z3Expr>();
+        HashSet<Z3Expr> visitedVars = new HashSet<Z3Expr>();
+        expressions.ForEach(expr => FreeVariables.CollectFreeVariables(expr, freeVars, visitedVars));
+
+        foreach (Z3Expr z3FreeVar in freeVars)
+        {
+            VariableDefinition variableDefinition = new VariableDefinition(new VariableReference(z3FreeVar.FuncDecl.Name.ToString()), Z3SortToDafny(z3FreeVar.Sort));
+            _freeVariables.Add(z3FreeVar, variableDefinition);
+        }
     }
 
     private Expression Slt(uint sortSize, Expression a, Expression b)
@@ -132,6 +150,8 @@ public class Z3ExprConverter
                     case Z3_decl_kind.Z3_OP_UGT:
                     case Z3_decl_kind.Z3_OP_ULT:
                     case Z3_decl_kind.Z3_OP_ULEQ:
+                    case Z3_decl_kind.Z3_OP_AND:
+                    case Z3_decl_kind.Z3_OP_OR:
                         {
                             var operators = new Dictionary<Z3_decl_kind, SDC.AST.Operator>()
                             {
@@ -141,13 +161,32 @@ public class Z3ExprConverter
                                 [Z3_decl_kind.Z3_OP_UGT] = Operator.Greater,
                                 [Z3_decl_kind.Z3_OP_ULT] = Operator.Less,
                                 [Z3_decl_kind.Z3_OP_DISTINCT] = Operator.NotEqual,
+                                [Z3_decl_kind.Z3_OP_AND] = Operator.BooleanAnd,
+                                [Z3_decl_kind.Z3_OP_OR] = Operator.BooleanOr,
                             };
+
+                            if (z3Expr.NumArgs != 2)
+                            {
+                                throw new NotSupportedException("The expression has less than two sub-expressions");
+                            }
 
                             var a0 = _childConverter(z3Expr.Args[0]);
                             var a1 = _childConverter(z3Expr.Args[1]);
                             dafnyExpr = new SDC.AST.BinaryExpression(a0, operators[z3Expr.FuncDecl.DeclKind], a1);
                         }
                         break;
+                    case Z3_decl_kind.Z3_OP_XOR:
+                        {
+                            if (z3Expr.NumArgs != 2)
+                            {
+                                throw new NotSupportedException("The expression has less than two sub-expressions");
+                            }
+
+                            var a0 = _childConverter(z3Expr.Args[0]);
+                            var a1 = _childConverter(z3Expr.Args[1]);
+                            dafnyExpr = Expression.BooleanXor(a0, a1);
+                            break;
+                        }
                     case Z3_decl_kind.Z3_OP_SLT:
                         {
                             var a0 = _childConverter(z3Expr.Args[0]);
@@ -180,8 +219,8 @@ public class Z3ExprConverter
                         {
                             if (z3Expr.IsConst && z3Expr.NumArgs == 0)
                             {
-                                Parameters.Add(new VariableDefinition(new VariableReference(z3Expr.FuncDecl.Name.ToString()), Z3SortToDafny(z3Expr.Sort)));
-                                dafnyExpr = Parameters.Last().Variable.ToExpression();
+                                // If this map access is invalid it is because FindFreeVariables was not called or failed
+                                dafnyExpr = _freeVariables[z3Expr].Variable.ToExpression();
                                 break;
                             }
                             throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
@@ -204,28 +243,11 @@ public class Z3ExprConverter
                             dafnyExpr = new SDC.AST.MathIfThenElse(conditionExpr, trueExpr, falseExpr);
                             break;
                         }
-                    case Z3_decl_kind.Z3_OP_AND:
-                    case Z3_decl_kind.Z3_OP_OR:
-                        {
-                            var op = declKind == Z3_decl_kind.Z3_OP_AND ? Operator.BooleanAnd : Operator.BooleanOr;
-
-                            var child = z3Expr.Args.Select(arg => _childConverter(arg)).ToList();
-                            if (child.Count < 2)
-                            {
-                                throw new NotSupportedException("The expression has less than two sub-expressions");
-                            }
-                            dafnyExpr = new SDC.AST.BinaryExpression(child[0], op, child[1]);
-                            for (int i = 2; i < child.Count; i++)
-                            {
-                                dafnyExpr = new SDC.AST.BinaryExpression(dafnyExpr, op, child[i]);
-                            }
-                            break;
-                        }
                     case Z3_decl_kind.Z3_OP_NOT:
                         {
                             var condition = _childConverter(z3Expr.Args[0]);
 
-                            dafnyExpr = new MathIfThenElse(condition, LiteralExpression.False, LiteralExpression.True);
+                            dafnyExpr = new UnaryExpression(condition, Operator.BooleanNegation);
                             break;
                         }
                     default:
@@ -359,8 +381,8 @@ public class Z3ExprConverter
                         {
                             if (z3Expr.IsConst && z3Expr.NumArgs == 0)
                             {
-                                Parameters.Add(new VariableDefinition(new VariableReference(z3Expr.FuncDecl.Name.ToString()), Z3SortToDafny(z3Expr.Sort)));
-                                dafnyExpr = Parameters.Last().Variable.ToExpression();
+                                // If this map access is invalid it is because FindFreeVariables was not called or failed
+                                dafnyExpr = _freeVariables[z3Expr].Variable.ToExpression();
                                 break;
                             }
                             throw new NotImplementedException($"Unknown expression {z3Expr.ToString()}");
@@ -445,6 +467,7 @@ public class Z3ExprConverter
         }
 
         _conversionCache[z3Expr.Id] = dafnyExpr;
+
         return dafnyExpr;
     }
 

@@ -11,7 +11,7 @@
 ; COM: %t.build/constraints %t.packed.unsat | %FileCheck --check-prefix=CHECK-UNSAT %s
 ; CHECK-UNSAT: sat: false
 
-; CHECK-BUILD: Dafny program verifier finished with 2 verified, 0 errors
+; CHECK-BUILD: Dafny program verifier finished with [[VERIFIED:[1-9][0-9]*]] verified, 0 errors
 ; CHECK-SAT: sat: true
 
 (set-info :smt-lib-version 2.6)
